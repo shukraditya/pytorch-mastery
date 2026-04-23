@@ -51,12 +51,12 @@ def _build_harness(problem: dict, user_code: str, test_cases: list[dict]) -> str
             if out.shape != tuple(expected.get("shape", [])):
                 ok = False
                 msgs.append(f"shape mismatch: {{out.shape}} vs {{expected.get('shape')}}")
-            if str(out.dtype).replace("torch.", "") != expected.get("dtype", ""):
+            if "dtype" in expected and str(out.dtype).replace("torch.", "") != expected["dtype"]:
                 ok = False
-                msgs.append(f"dtype mismatch: {{out.dtype}} vs {{expected.get('dtype')}}")
-            if str(out.device) != expected.get("device", "cpu"):
+                msgs.append(f"dtype mismatch: {{out.dtype}} vs {{expected['dtype']}}")
+            if "device" in expected and str(out.device) != expected["device"]:
                 ok = False
-                msgs.append(f"device mismatch: {{out.device}} vs {{expected.get('device')}}")
+                msgs.append(f"device mismatch: {{out.device}} vs {{expected['device']}}")
             if "value" in expected:
                 expected_tensor = eval(expected["value"], {{"torch": torch}})
                 if not torch.allclose(out, expected_tensor, rtol=1e-05, atol=1e-08):
@@ -105,10 +105,11 @@ results = []
 
 for tc in test_cases:
     try:
+        _globals = {{"torch": torch}}
         setup = tc.get("setup", "")
         if setup:
-            exec(setup, {{"torch": torch}})
-        inputs = {{k: eval(str(v), {{"torch": torch}}) for k, v in tc["inputs"].items()}}
+            exec(setup, _globals)
+        inputs = {{k: eval(str(v), _globals) for k, v in tc["inputs"].items()}}
         out = {func_name}(**inputs)
         expected = tc["expected"]
 
