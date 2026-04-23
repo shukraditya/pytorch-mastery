@@ -25,30 +25,26 @@ test_cases:
         logits: torch.tensor([[2.0, 1.0, 0.1], [0.5, 2.5, 0.3]])
         targets: torch.tensor([0, 1])
       expected:
-        value: torch.tensor(0.4166)
+        value: torch.nn.functional.cross_entropy(logits, targets)
     - name: Uniform
       inputs:
         logits: torch.tensor([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
         targets: torch.tensor([0, 1])
       expected:
-        value: torch.tensor(1.0986)
+        value: torch.nn.functional.cross_entropy(logits, targets)
   hidden:
     - name: Single Class
       inputs:
         logits: torch.tensor([[5.0, 0.0, 0.0]])
         targets: torch.tensor([0])
       expected:
-        value: torch.tensor(0.0170)
+        value: torch.nn.functional.cross_entropy(logits, targets)
     - name: Batch
       inputs:
         logits: torch.randn(4, 10)
         targets: torch.tensor([0, 5, 3, 8])
       expected:
-        value: |
-          import torch
-          logits = torch.randn(4, 10)
-          targets = torch.tensor([0, 5, 3, 8])
-          torch.nn.functional.cross_entropy(logits, targets)
+        value: torch.nn.functional.cross_entropy(logits, targets)
 validation:
   type: allclose
   rtol: 1e-03
