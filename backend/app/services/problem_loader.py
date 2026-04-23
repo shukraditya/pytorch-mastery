@@ -6,11 +6,12 @@ PROBLEMS_DIR = Path(__file__).parent.parent.parent / "problems"
 
 
 def load_problem(problem_id: str) -> dict:
-    path = PROBLEMS_DIR / f"{problem_id}.yml"
-    if not path.exists():
-        raise FileNotFoundError(f"Problem {problem_id} not found")
-    with open(path, "r") as f:
-        return yaml.safe_load(f)
+    for f in PROBLEMS_DIR.glob("*.yml"):
+        with open(f, "r") as fh:
+            data = yaml.safe_load(fh)
+            if data.get("id") == problem_id:
+                return data
+    raise FileNotFoundError(f"Problem {problem_id} not found")
 
 
 def list_problems() -> list[dict]:

@@ -57,6 +57,11 @@ def _build_harness(problem: dict, user_code: str, test_cases: list[dict]) -> str
             if str(out.device) != expected.get("device", "cpu"):
                 ok = False
                 msgs.append(f"device mismatch: {{out.device}} vs {{expected.get('device')}}")
+            if "value" in expected:
+                expected_tensor = eval(expected["value"], {{"torch": torch}})
+                if not torch.allclose(out, expected_tensor, rtol=1e-05, atol=1e-08):
+                    ok = False
+                    msgs.append(f"value mismatch: {{out.tolist()}} vs {{expected_tensor.tolist()}}")
             passed = ok
             actual = f"shape={{out.shape}}, dtype={{out.dtype}}, device={{out.device}}"
             expected_str = str(expected)
@@ -79,44 +84,43 @@ def _build_harness(problem: dict, user_code: str, test_cases: list[dict]) -> str
             error = None
         """)
 
-    harness = textwrap.dedent(f"""\
-        import torch
-        import json
-        import sys
+    harness = f"""import torch
+import json
+import sys
 
-        # ---- user code ----
-        {textwrap.indent(user_code, "        ")}
+# ---- user code ----
+{user_code}
 
-        # ---- test harness ----
-        test_cases = json.loads({repr(tc_json)})
-        results = []
+# ---- test harness ----
+test_cases = json.loads({repr(tc_json)})
+results = []
 
-        for tc in test_cases:
-            try:
-                inputs = {{k: eval(v, {{"torch": torch}}) for k, v in tc["inputs"].items()}}
-                out = {func_name}(**inputs)
-                expected = tc["expected"]
+for tc in test_cases:
+    try:
+        inputs = {{k: eval(v, {{"torch": torch}}) for k, v in tc["inputs"].items()}}
+        out = {func_name}(**inputs)
+        expected = tc["expected"]
 
-                {textwrap.indent(check_logic, "                ")}
+{textwrap.indent(check_logic, '        ')}
 
-                results.append({{
-                    "name": tc["name"],
-                    "passed": bool(passed),
-                    "actual": actual,
-                    "expected": expected_str,
-                    "error": error,
-                }})
-            except Exception as e:
-                results.append({{
-                    "name": tc["name"],
-                    "passed": False,
-                    "actual": None,
-                    "expected": None,
-                    "error": str(e),
-                }})
+        results.append({{
+            "name": tc["name"],
+            "passed": bool(passed),
+            "actual": actual,
+            "expected": expected_str,
+            "error": error,
+        }})
+    except Exception as e:
+        results.append({{
+            "name": tc["name"],
+            "passed": False,
+            "actual": None,
+            "expected": None,
+            "error": str(e),
+        }})
 
-        print(json.dumps(results))
-    """)
+print(json.dumps(results))
+"""
     return harness
 
 
