@@ -1,0 +1,55 @@
+id: tf2
+title: Min–Max Normalize
+day: 1
+week: 1
+difficulty: Easy
+focus: Broadcasting, numerical edge cases
+description: |
+  Implement `min_max_normalize(x, dim)` which normalizes the input tensor along the given dimension using min-max scaling:
+
+  ```
+  x_norm = (x - x.min(dim, keepdim=True).values) / (x.max(dim, keepdim=True).values - x.min(dim, keepdim=True).values + 1e-8)
+  ```
+
+  Return a tensor of the same shape. Handle the edge case where max == min by returning zeros.
+starter_code: |
+  import torch
+
+  def min_max_normalize(x: torch.Tensor, dim: int) -> torch.Tensor:
+      """Min-max normalize along dimension `dim`."""
+      pass
+function_name: min_max_normalize
+test_cases:
+  visible:
+    - name: Basic 2D
+      inputs:
+        x: torch.tensor([[1.0, 2.0, 3.0], [2.0, 4.0, 6.0]])
+        dim: 1
+      expected:
+        value: torch.tensor([[0.0, 0.5, 1.0], [0.0, 0.5, 1.0]])
+    - name: Constant Row
+      inputs:
+        x: torch.tensor([[5.0, 5.0, 5.0]])
+        dim: 1
+      expected:
+        value: torch.tensor([[0.0, 0.0, 0.0]])
+  hidden:
+    - name: 3D Tensor
+      inputs:
+        x: torch.arange(24).float().reshape(2, 3, 4)
+        dim: -1
+      expected:
+        value: |
+          import torch
+          x = torch.arange(24).float().reshape(2, 3, 4)
+          (x - x.min(-1, keepdim=True).values) / (x.max(-1, keepdim=True).values - x.min(-1, keepdim=True).values + 1e-8)
+    - name: Negative Values
+      inputs:
+        x: torch.tensor([[-3.0, -1.0, 1.0]])
+        dim: 1
+      expected:
+        value: torch.tensor([[0.0, 0.5, 1.0]])
+validation:
+  type: allclose
+  rtol: 1e-05
+  atol: 1e-08
