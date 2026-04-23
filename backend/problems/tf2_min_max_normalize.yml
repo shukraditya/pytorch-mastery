@@ -39,10 +39,7 @@ test_cases:
         x: torch.arange(24).float().reshape(2, 3, 4)
         dim: -1
       expected:
-        value: |
-          import torch
-          x = torch.arange(24).float().reshape(2, 3, 4)
-          (x - x.min(-1, keepdim=True).values) / (x.max(-1, keepdim=True).values - x.min(-1, keepdim=True).values + 1e-8)
+        value: torch.tensor([[[0.0, 1/3, 2/3, 1.0], [0.0, 1/3, 2/3, 1.0], [0.0, 1/3, 2/3, 1.0]], [[0.0, 1/3, 2/3, 1.0], [0.0, 1/3, 2/3, 1.0], [0.0, 1/3, 2/3, 1.0]]])
     - name: Negative Values
       inputs:
         x: torch.tensor([[-3.0, -1.0, 1.0]])

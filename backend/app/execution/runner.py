@@ -97,7 +97,7 @@ results = []
 
 for tc in test_cases:
     try:
-        inputs = {{k: eval(v, {{"torch": torch}}) for k, v in tc["inputs"].items()}}
+        inputs = {{k: eval(str(v), {{"torch": torch}}) for k, v in tc["inputs"].items()}}
         out = {func_name}(**inputs)
         expected = tc["expected"]
 
