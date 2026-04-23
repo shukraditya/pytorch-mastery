@@ -11,6 +11,23 @@ from app.services.problem_loader import load_problem
 SAFE_GLOBALS = {"torch": __import__("torch")}
 
 
+def _precompute_expected(expected: dict, val_type: str) -> dict:
+    if val_type in ("allclose", "equality"):
+        expr = expected.get("value", "")
+        if "\n" in expr or "import" in expr:
+            local_vars = {}
+            exec(expr, SAFE_GLOBALS, local_vars)
+            tensor = None
+            for v in reversed(list(local_vars.values())):
+                if isinstance(v, SAFE_GLOBALS["torch"].Tensor):
+                    tensor = v
+                    break
+            if tensor is None:
+                raise ValueError("Could not find tensor in expected expression")
+            expected = {**expected, "value": repr(tensor)}
+    return expected
+
+
 def _build_harness(problem: dict, user_code: str, test_cases: list[dict]) -> str:
     func_name = problem["function_name"]
     validation = problem.get("validation", {})
@@ -18,7 +35,14 @@ def _build_harness(problem: dict, user_code: str, test_cases: list[dict]) -> str
     rtol = validation.get("rtol", 1e-05)
     atol = validation.get("atol", 1e-08)
 
-    tc_json = json.dumps(test_cases)
+    # Precompute any expression-based expected values
+    processed_tests = []
+    for tc in test_cases:
+        processed = dict(tc)
+        processed["expected"] = _precompute_expected(tc["expected"], val_type)
+        processed_tests.append(processed)
+
+    tc_json = json.dumps(processed_tests)
 
     if val_type == "match_tensor":
         check_logic = textwrap.dedent(f"""\
