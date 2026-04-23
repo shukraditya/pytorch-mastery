@@ -1,0 +1,50 @@
+id: dl1
+title: Balanced Batch Sampler
+day: 12
+week: 4
+difficulty: Medium
+focus: Class imbalance, WeightedRandomSampler
+description: |
+  Implement `balanced_batch_sampler(labels, batch_size)` that returns indices for a balanced batch.
+
+  Given class labels, sample indices such that each batch has roughly equal class representation.
+  Use `torch.utils.data.WeightedRandomSampler` with weights inversely proportional to class frequency.
+
+  Return a list of indices of length `batch_size`.
+starter_code: |
+  import torch
+  from torch.utils.data import WeightedRandomSampler
+
+  def balanced_batch_sampler(labels, batch_size):
+      """Create a balanced batch of indices."""
+      pass
+function_name: balanced_batch_sampler
+test_cases:
+  visible:
+    - name: Imbalanced
+      inputs:
+        labels: torch.tensor([0, 0, 0, 0, 1, 1])
+        batch_size: 4
+      expected:
+        length: 4
+    - name: Balanced
+      inputs:
+        labels: torch.tensor([0, 0, 1, 1, 2, 2])
+        batch_size: 6
+      expected:
+        length: 6
+  hidden:
+    - name: Single Class
+      inputs:
+        labels: torch.tensor([0, 0, 0])
+        batch_size: 2
+      expected:
+        length: 2
+    - name: Large Imbalance
+      inputs:
+        labels: torch.tensor([0] * 100 + [1] * 10)
+        batch_size: 16
+      expected:
+        length: 16
+validation:
+  type: length

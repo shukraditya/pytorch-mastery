@@ -1,0 +1,55 @@
+id: ag2
+title: Custom Function
+day: 3
+week: 1
+difficulty: Hard
+focus: ctx.save_for_backward, backward derivation
+description: |
+  Implement a custom autograd function `MySquare` that computes `y = x^2`.
+
+  The backward pass should compute `grad_input = 2 * x * grad_output`.
+
+  Return an instance method or the function applied to x. Since we test the function directly, write a top-level function `my_square(x)` that uses `MySquare.apply`.
+starter_code: |
+  import torch
+
+  class MySquare(torch.autograd.Function):
+      @staticmethod
+      def forward(ctx, x):
+          pass
+
+      @staticmethod
+      def backward(ctx, grad_output):
+          pass
+
+  def my_square(x: torch.Tensor) -> torch.Tensor:
+      """Compute x^2 using custom autograd function."""
+      pass
+function_name: my_square
+test_cases:
+  visible:
+    - name: Forward
+      inputs:
+        x: torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+      expected:
+        value: torch.tensor([1.0, 4.0, 9.0])
+    - name: Backward
+      inputs:
+        x: torch.tensor([2.0, 3.0], requires_grad=True)
+      expected:
+        value: torch.tensor([4.0, 9.0])
+  hidden:
+    - name: Negative
+      inputs:
+        x: torch.tensor([-2.0, -3.0], requires_grad=True)
+      expected:
+        value: torch.tensor([4.0, 9.0])
+    - name: Gradient Check
+      inputs:
+        x: torch.tensor([2.0], requires_grad=True)
+      expected:
+        value: torch.tensor([4.0])
+validation:
+  type: allclose
+  rtol: 1e-05
+  atol: 1e-08

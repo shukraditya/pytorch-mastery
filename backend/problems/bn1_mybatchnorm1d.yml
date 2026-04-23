@@ -1,0 +1,64 @@
+id: bn1
+title: MyBatchNorm1d
+day: 5
+week: 2
+difficulty: Hard
+focus: Running stats, train/eval divergence
+description: |
+  Implement `MyBatchNorm1d(num_features, eps=1e-5, momentum=0.1)`.
+
+  In training:
+  - Compute batch mean and var across dim 0
+  - Update running_mean and running_var with momentum
+  - Normalize: `(x - mean) / sqrt(var + eps)`
+
+  In eval, use running stats.
+
+  Return the normalized tensor. Track running stats as buffers.
+starter_code: |
+  import torch
+  import torch.nn as nn
+
+  class MyBatchNorm1d(nn.Module):
+      def __init__(self, num_features: int, eps: float = 1e-5, momentum: float = 0.1):
+          super().__init__()
+          pass
+
+      def forward(self, x: torch.Tensor) -> torch.Tensor:
+          pass
+
+  def my_batch_norm(x: torch.Tensor, num_features: int) -> torch.Tensor:
+      """Apply custom batch norm in training mode."""
+      bn = MyBatchNorm1d(num_features)
+      bn.train()
+      return bn(x)
+function_name: my_batch_norm
+test_cases:
+  visible:
+    - name: Basic
+      inputs:
+        x: torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+        num_features: 2
+      expected:
+        shape: [3, 2]
+    - name: Single Feature
+      inputs:
+        x: torch.tensor([[1.0], [2.0], [3.0]])
+        num_features: 1
+      expected:
+        shape: [3, 1]
+  hidden:
+    - name: Large Batch
+      inputs:
+        x: torch.randn(32, 64)
+        num_features: 64
+      expected:
+        shape: [32, 64]
+    - name: Small Eps
+      inputs:
+        x: torch.tensor([[1.0, 1.0], [1.0, 1.0]])
+        num_features: 2
+      expected:
+        shape: [2, 2]
+validation:
+  type: match_tensor

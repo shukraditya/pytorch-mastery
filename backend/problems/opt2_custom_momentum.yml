@@ -1,0 +1,82 @@
+id: opt2
+title: Custom Momentum
+day: 8
+week: 3
+difficulty: Hard
+focus: EMA of gradients, Adam foundation
+description: |
+  Implement `custom_sgd_momentum(params, grads, states, lr, momentum)` that performs one parameter update with momentum.
+
+  `states` is a list of velocity tensors (one per param). Update rule:
+  ```
+  v_t = momentum * v_{t-1} + grad
+  param = param - lr * v_t
+  ```
+
+  Modify params and states in-place. Return nothing.
+starter_code: |
+  import torch
+
+  def custom_sgd_momentum(params, grads, states, lr, momentum):
+      """In-place SGD with momentum."""
+      pass
+function_name: custom_sgd_momentum
+test_cases:
+  visible:
+    - name: Basic
+      setup: |
+        params = [torch.tensor([1.0, 2.0], requires_grad=True)]
+        grads = [torch.tensor([0.1, 0.2])]
+        states = [torch.zeros_like(p) for p in params]
+      inputs:
+        params: params
+        grads: grads
+        states: states
+        lr: 0.1
+        momentum: 0.9
+      expected:
+        value: params[0]
+    - name: Zero Momentum
+      setup: |
+        params = [torch.tensor([1.0, 2.0], requires_grad=True)]
+        grads = [torch.tensor([0.1, 0.2])]
+        states = [torch.zeros_like(p) for p in params]
+      inputs:
+        params: params
+        grads: grads
+        states: states
+        lr: 0.1
+        momentum: 0.0
+      expected:
+        value: torch.tensor([0.99, 1.98])
+  hidden:
+    - name: Multiple Params
+      setup: |
+        params = [torch.tensor([1.0]), torch.tensor([2.0])]
+        grads = [torch.tensor([0.1]), torch.tensor([0.2])]
+        states = [torch.zeros_like(p) for p in params]
+      inputs:
+        params: params
+        grads: grads
+        states: states
+        lr: 0.1
+        momentum: 0.9
+      expected:
+        value: params[0]
+    - name: Second Step
+      setup: |
+        params = [torch.tensor([1.0])]
+        grads = [torch.tensor([0.1])]
+        states = [torch.tensor([0.1])]
+      inputs:
+        params: params
+        grads: grads
+        states: states
+        lr: 0.1
+        momentum: 0.9
+      expected:
+        value: torch.tensor([0.981])
+validation:
+  type: allclose
+  rtol: 1e-05
+  atol: 1e-08

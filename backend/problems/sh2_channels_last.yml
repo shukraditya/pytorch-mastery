@@ -1,0 +1,43 @@
+id: sh2
+title: Channels Last
+day: 2
+week: 1
+difficulty: Easy
+focus: permute, memory layout
+description: |
+  Write a function `to_channels_last(x)` that converts an image tensor from **channels-first** (NCHW) format to **channels-last** (NHWC) format using `permute`.
+
+  Input shape: `(N, C, H, W)`
+  Output shape: `(N, H, W, C)`
+starter_code: |
+  import torch
+
+  def to_channels_last(x: torch.Tensor) -> torch.Tensor:
+      """Convert NCHW -> NHWC."""
+      pass
+function_name: to_channels_last
+test_cases:
+  visible:
+    - name: Standard Image
+      inputs:
+        x: torch.randn(2, 3, 32, 32)
+      expected:
+        shape: [2, 32, 32, 3]
+    - name: Single Image
+      inputs:
+        x: torch.randn(1, 1, 64, 64)
+      expected:
+        shape: [1, 64, 64, 1]
+  hidden:
+    - name: Large Batch
+      inputs:
+        x: torch.randn(16, 3, 224, 224)
+      expected:
+        shape: [16, 224, 224, 3]
+    - name: Grayscale
+      inputs:
+        x: torch.randn(8, 1, 28, 28)
+      expected:
+        shape: [8, 28, 28, 1]
+validation:
+  type: match_tensor

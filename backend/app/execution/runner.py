@@ -75,6 +75,14 @@ def _build_harness(problem: dict, user_code: str, test_cases: list[dict]) -> str
             expected_str = str(expected_tensor.tolist())
             error = None
         """)
+    elif val_type == "length":
+        check_logic = textwrap.dedent("""\
+            expected_len = expected.get("length", 0)
+            passed = len(out) == expected_len
+            actual = str(len(out))
+            expected_str = str(expected_len)
+            error = None
+        """)
     else:
         check_logic = textwrap.dedent("""\
             expected_tensor = eval(expected["value"], {"torch": torch})
@@ -97,6 +105,9 @@ results = []
 
 for tc in test_cases:
     try:
+        setup = tc.get("setup", "")
+        if setup:
+            exec(setup, {{"torch": torch}})
         inputs = {{k: eval(str(v), {{"torch": torch}}) for k, v in tc["inputs"].items()}}
         out = {func_name}(**inputs)
         expected = tc["expected"]

@@ -1,0 +1,49 @@
+id: act2
+title: GELU Approximation
+day: 4
+week: 2
+difficulty: Medium
+focus: Approximation for inference speed
+description: |
+  Implement the tanh approximation of GELU:
+
+  ```
+  0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x^3)))
+  ```
+
+  This is the fast approximation used in many transformers.
+starter_code: |
+  import torch
+  import math
+
+  def gelu_approx(x: torch.Tensor) -> torch.Tensor:
+      """Fast tanh approximation of GELU."""
+      pass
+function_name: gelu_approx
+test_cases:
+  visible:
+    - name: Positive
+      inputs:
+        x: torch.tensor([1.0, 2.0, 3.0])
+      expected:
+        value: torch.tensor([0.8413, 1.9545, 2.9964])
+    - name: Negative
+      inputs:
+        x: torch.tensor([-1.0, -2.0, -3.0])
+      expected:
+        value: torch.tensor([-0.1587, -0.0455, -0.0036])
+  hidden:
+    - name: Zero
+      inputs:
+        x: torch.tensor([0.0])
+      expected:
+        value: torch.tensor([0.0])
+    - name: Mixed
+      inputs:
+        x: torch.tensor([-2.0, -1.0, 0.0, 1.0, 2.0])
+      expected:
+        value: torch.tensor([-0.0455, -0.1587, 0.0, 0.8413, 1.9545])
+validation:
+  type: allclose
+  rtol: 1e-03
+  atol: 1e-05

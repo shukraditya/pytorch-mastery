@@ -1,0 +1,68 @@
+id: tl1
+title: One-Step Training
+day: 7
+week: 3
+difficulty: Medium
+focus: Sacred order - forward -> backward -> step -> zero
+description: |
+  Write a function `one_step_training(model, x, y, criterion, optimizer)` that performs exactly one training step.
+
+  The order must be:
+  1. `optimizer.zero_grad()`
+  2. `output = model(x)`
+  3. `loss = criterion(output, y)`
+  4. `loss.backward()`
+  5. `optimizer.step()`
+
+  Return the loss tensor.
+starter_code: |
+  import torch
+
+  def one_step_training(model, x, y, criterion, optimizer):
+      """Perform one training step in the correct order."""
+      pass
+function_name: one_step_training
+test_cases:
+  visible:
+    - name: Basic
+      setup: |
+        model = torch.nn.Linear(2, 1)
+        criterion = torch.nn.MSELoss()
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+      inputs:
+        x: torch.randn(4, 2)
+        y: torch.randn(4, 1)
+        model: model
+        criterion: criterion
+        optimizer: optimizer
+      expected:
+        shape: []
+    - name: Classification
+      setup: |
+        model = torch.nn.Linear(10, 2)
+        criterion = torch.nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+      inputs:
+        x: torch.randn(8, 10)
+        y: torch.randint(0, 2, (8,))
+        model: model
+        criterion: criterion
+        optimizer: optimizer
+      expected:
+        shape: []
+  hidden:
+    - name: Larger
+      setup: |
+        model = torch.nn.Linear(5, 3)
+        criterion = torch.nn.MSELoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+      inputs:
+        x: torch.randn(16, 5)
+        y: torch.randn(16, 3)
+        model: model
+        criterion: criterion
+        optimizer: optimizer
+      expected:
+        shape: []
+validation:
+  type: match_tensor

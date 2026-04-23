@@ -1,0 +1,44 @@
+id: sh1
+title: Flatten Except Batch
+day: 2
+week: 1
+difficulty: Easy
+focus: view vs reshape, contiguous memory
+description: |
+  Write a function `flatten_except_batch(x)` that flattens all dimensions except the first (batch) dimension.
+
+  For an input of shape `(B, D1, D2, ..., Dk)`, return a tensor of shape `(B, D1 * D2 * ... * Dk)`.
+
+  Use `view` if possible; if the tensor is not contiguous, fall back to `reshape`.
+starter_code: |
+  import torch
+
+  def flatten_except_batch(x: torch.Tensor) -> torch.Tensor:
+      """Flatten all dimensions except the first (batch)."""
+      pass
+function_name: flatten_except_batch
+test_cases:
+  visible:
+    - name: 4D Tensor
+      inputs:
+        x: torch.randn(2, 3, 4, 5)
+      expected:
+        shape: [2, 60]
+    - name: 2D Tensor
+      inputs:
+        x: torch.randn(4, 10)
+      expected:
+        shape: [4, 10]
+  hidden:
+    - name: Non-contiguous
+      inputs:
+        x: torch.randn(3, 4, 5).permute(0, 2, 1)
+      expected:
+        shape: [3, 20]
+    - name: 3D Tensor
+      inputs:
+        x: torch.randn(1, 2, 3)
+      expected:
+        shape: [1, 6]
+validation:
+  type: match_tensor

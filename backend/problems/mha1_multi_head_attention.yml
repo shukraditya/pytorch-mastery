@@ -1,0 +1,76 @@
+id: mha1
+title: Multi-Head Attention
+day: 11
+week: 4
+difficulty: Hard
+focus: Head splitting, output projection
+description: |
+  Implement `multi_head_attention(x, W_q, W_k, W_v, W_o, num_heads)`.
+
+  Input x shape: (batch, seq_len, d_model)
+  Split into num_heads, compute attention for each head, concatenate, and project with W_o.
+
+  Use scaled_dot_product_attention internally.
+starter_code: |
+  import torch
+  import math
+
+  def multi_head_attention(x, W_q, W_k, W_v, W_o, num_heads):
+      """Multi-head attention from scratch."""
+      pass
+function_name: multi_head_attention
+test_cases:
+  visible:
+    - name: Basic
+      setup: |
+        d_model = 4
+        num_heads = 2
+        W_q = torch.eye(d_model)
+        W_k = torch.eye(d_model)
+        W_v = torch.eye(d_model)
+        W_o = torch.eye(d_model)
+      inputs:
+        x: torch.ones(1, 2, 4)
+        W_q: W_q
+        W_k: W_k
+        W_v: W_v
+        W_o: W_o
+        num_heads: 2
+      expected:
+        shape: [1, 2, 4]
+    - name: Batch
+      setup: |
+        d_model = 8
+        num_heads = 2
+        W_q = torch.eye(d_model)
+        W_k = torch.eye(d_model)
+        W_v = torch.eye(d_model)
+        W_o = torch.eye(d_model)
+      inputs:
+        x: torch.ones(2, 3, 8)
+        W_q: W_q
+        W_k: W_k
+        W_v: W_v
+        W_o: W_o
+        num_heads: 2
+      expected:
+        shape: [2, 3, 8]
+  hidden:
+    - name: Single Head
+      setup: |
+        d_model = 4
+        W_q = torch.eye(d_model)
+        W_k = torch.eye(d_model)
+        W_v = torch.eye(d_model)
+        W_o = torch.eye(d_model)
+      inputs:
+        x: torch.ones(1, 2, 4)
+        W_q: W_q
+        W_k: W_k
+        W_v: W_v
+        W_o: W_o
+        num_heads: 1
+      expected:
+        shape: [1, 2, 4]
+validation:
+  type: match_tensor
