@@ -7,6 +7,12 @@ export interface ProblemSummary {
   focus: string;
 }
 
+export interface Example {
+  name: string;
+  inputs: Record<string, string>;
+  expected: Record<string, any>;
+}
+
 export interface Problem {
   id: string;
   title: string;
@@ -17,6 +23,9 @@ export interface Problem {
   description: string;
   starter_code: string;
   function_name: string;
+  test_cases?: {
+    visible: Example[];
+  };
 }
 
 export interface TestCaseResult {

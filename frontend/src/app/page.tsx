@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getProblems } from "@/lib/api";
 import { ProblemSummary } from "@/lib/types";
 import { getProgress } from "@/lib/progress";
-import { Lock } from "lucide-react";
+import { CheckCircle2, Lock } from "lucide-react";
 
 function DifficultyBadge({ level }: { level: string }) {
   const colors: Record<string, string> = {
@@ -133,7 +133,7 @@ export default function Home() {
                         <div className="font-medium flex items-center gap-2">
                           {p.title}
                           {s.completed && (
-                            <span className="text-green-400 text-sm">✓</span>
+                            <CheckCircle2 className="w-4 h-4 text-green-400" />
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground">
