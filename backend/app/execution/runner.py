@@ -1,31 +1,11 @@
 import json
-import os
 import subprocess
+import sys
 import tempfile
 import textwrap
 from pathlib import Path
 
 from app.services.problem_loader import load_problem
-
-
-SAFE_GLOBALS = {"torch": __import__("torch")}
-
-
-def _precompute_expected(expected: dict, val_type: str) -> dict:
-    if val_type in ("allclose", "equality"):
-        expr = expected.get("value", "")
-        if "\n" in expr or "import" in expr:
-            local_vars = {}
-            exec(expr, SAFE_GLOBALS, local_vars)
-            tensor = None
-            for v in reversed(list(local_vars.values())):
-                if isinstance(v, SAFE_GLOBALS["torch"].Tensor):
-                    tensor = v
-                    break
-            if tensor is None:
-                raise ValueError("Could not find tensor in expected expression")
-            expected = {**expected, "value": repr(tensor)}
-    return expected
 
 
 def _build_harness(problem: dict, user_code: str, test_cases: list[dict]) -> str:
@@ -35,14 +15,7 @@ def _build_harness(problem: dict, user_code: str, test_cases: list[dict]) -> str
     rtol = validation.get("rtol", 1e-05)
     atol = validation.get("atol", 1e-08)
 
-    # Precompute any expression-based expected values
-    processed_tests = []
-    for tc in test_cases:
-        processed = dict(tc)
-        processed["expected"] = _precompute_expected(tc["expected"], val_type)
-        processed_tests.append(processed)
-
-    tc_json = json.dumps(processed_tests)
+    tc_json = json.dumps(test_cases)
 
     if val_type == "match_tensor":
         check_logic = textwrap.dedent(f"""\
@@ -58,22 +31,46 @@ def _build_harness(problem: dict, user_code: str, test_cases: list[dict]) -> str
                 ok = False
                 msgs.append(f"device mismatch: {{out.device}} vs {{expected['device']}}")
             if "value" in expected:
-                expected_tensor = eval(expected["value"], {{"torch": torch}})
+                expected_tensor = _eval_expected(expected["value"], _globals)
                 if not torch.allclose(out, expected_tensor, rtol=1e-05, atol=1e-08):
                     ok = False
                     msgs.append(f"value mismatch: {{out.tolist()}} vs {{expected_tensor.tolist()}}")
             passed = ok
-            actual = f"shape={{out.shape}}, dtype={{out.dtype}}, device={{out.device}}"
-            expected_str = str(expected)
+            actual = f"shape={{list(out.shape)}}, dtype={{str(out.dtype).replace('torch.', '')}}, device={{out.device}}"
+            _exp_parts = []
+            if "shape" in expected:
+                _exp_parts.append(f"shape={{expected['shape']}}")
+            if "dtype" in expected:
+                _exp_parts.append(f"dtype={{expected['dtype']}}")
+            if "device" in expected:
+                _exp_parts.append(f"device={{expected['device']}}")
+            expected_str = ", ".join(_exp_parts)
             error = "; ".join(msgs) if msgs else None
         """)
     elif val_type == "allclose":
         check_logic = textwrap.dedent(f"""\
-            expected_tensor = eval(expected["value"], {{"torch": torch}})
-            passed = torch.allclose(out, expected_tensor, rtol={rtol}, atol={atol})
-            actual = str(out.tolist())
-            expected_str = str(expected_tensor.tolist())
-            error = None
+            if "value" in expected:
+                expected_tensor = _eval_expected(expected["value"], _globals)
+                passed = torch.allclose(out, expected_tensor, rtol={rtol}, atol={atol})
+                actual = str(out.tolist())
+                expected_str = str(expected_tensor.tolist())
+                error = None
+            else:
+                ok = True
+                msgs = []
+                if "shape" in expected and list(out.shape) != expected["shape"]:
+                    ok = False
+                    msgs.append(f"shape mismatch: {{list(out.shape)}} vs {{expected['shape']}}")
+                if "dtype" in expected and str(out.dtype).replace("torch.", "") != expected["dtype"]:
+                    ok = False
+                    msgs.append(f"dtype mismatch: {{out.dtype}} vs {{expected['dtype']}}")
+                if "device" in expected and str(out.device) != expected["device"]:
+                    ok = False
+                    msgs.append(f"device mismatch: {{out.device}} vs {{expected['device']}}")
+                passed = ok
+                actual = f"shape={{list(out.shape)}}, dtype={{str(out.dtype).replace('torch.', '')}}, device={{out.device}}"
+                expected_str = str(expected)
+                error = "; ".join(msgs) if msgs else None
         """)
     elif val_type == "length":
         check_logic = textwrap.dedent("""\
@@ -85,11 +82,28 @@ def _build_harness(problem: dict, user_code: str, test_cases: list[dict]) -> str
         """)
     else:
         check_logic = textwrap.dedent("""\
-            expected_tensor = eval(expected["value"], {"torch": torch})
-            passed = torch.equal(out, expected_tensor)
-            actual = str(out.tolist())
-            expected_str = str(expected_tensor.tolist())
-            error = None
+            if "value" in expected:
+                expected_tensor = _eval_expected(expected["value"], _globals)
+                passed = torch.equal(out, expected_tensor)
+                actual = str(out.tolist())
+                expected_str = str(expected_tensor.tolist())
+                error = None
+            else:
+                ok = True
+                msgs = []
+                if "shape" in expected and list(out.shape) != expected["shape"]:
+                    ok = False
+                    msgs.append(f"shape mismatch: {list(out.shape)} vs {expected['shape']}")
+                if "dtype" in expected and str(out.dtype).replace("torch.", "") != expected["dtype"]:
+                    ok = False
+                    msgs.append(f"dtype mismatch: {out.dtype} vs {expected['dtype']}")
+                if "device" in expected and str(out.device) != expected["device"]:
+                    ok = False
+                    msgs.append(f"device mismatch: {out.device} vs {expected['device']}")
+                passed = ok
+                actual = f"shape={list(out.shape)}, dtype={str(out.dtype).replace('torch.', '')}, device={out.device}"
+                expected_str = str(expected)
+                error = "; ".join(msgs) if msgs else None
         """)
 
     harness = f"""import torch
@@ -103,6 +117,16 @@ import sys
 test_cases = json.loads({repr(tc_json)})
 results = []
 
+def _eval_expected(expr, scope):
+    if "\\n" in expr or "import" in expr:
+        local = {{}}
+        exec(expr, scope, local)
+        for v in reversed(list(local.values())):
+            if isinstance(v, torch.Tensor):
+                return v
+        raise ValueError("No tensor found in multi-line expected expression")
+    return eval(expr, scope)
+
 for tc in test_cases:
     try:
         _globals = {{"torch": torch}}
@@ -110,6 +134,7 @@ for tc in test_cases:
         if setup:
             exec(setup, _globals)
         inputs = {{k: eval(str(v), _globals) for k, v in tc["inputs"].items()}}
+        _globals.update(inputs)
         out = {func_name}(**inputs)
         expected = tc["expected"]
 
@@ -153,7 +178,7 @@ def run_problem(problem_id: str, user_code: str, mode: str = "run") -> dict:
 
         try:
             proc = subprocess.run(
-                ["python", str(script_path)],
+                ["uv", "run", "python", str(script_path)],
                 capture_output=True,
                 text=True,
                 timeout=10,
