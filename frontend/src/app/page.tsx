@@ -17,6 +17,8 @@ function DifficultyBadge({ level }: { level: string }) {
   );
 }
 
+export const dynamic = "force-dynamic";
+
 function groupByWeek(problems: ProblemSummary[]) {
   const map = new Map<number, ProblemSummary[]>();
   for (const p of problems) {
