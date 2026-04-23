@@ -1,16 +1,35 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getProblem, runCode } from "@/lib/api";
-import { Problem, RunResponse } from "@/lib/types";
+import { getProblem, getProblems, runCode } from "@/lib/api";
+import { Problem, ProblemSummary, RunResponse } from "@/lib/types";
+import { getProgress, setProblemCompleted } from "@/lib/progress";
 import dynamic from "next/dynamic";
-import { Play, Send, Terminal, ListChecks } from "lucide-react";
+import { Play, Send, Terminal, ListChecks, Lock } from "lucide-react";
+import ProblemDescription from "@/components/ProblemDescription";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
+function sortProblems(problems: ProblemSummary[]) {
+  return [...problems].sort((a, b) => {
+    if (a.week !== b.week) return a.week - b.week;
+    if (a.day !== b.day) return a.day - b.day;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+function isUnlocked(sorted: ProblemSummary[], id: string): boolean {
+  const idx = sorted.findIndex((p) => p.id === id);
+  if (idx <= 0) return true;
+  const progress = getProgress();
+  const prev = sorted[idx - 1];
+  return !!progress[prev.id];
+}
+
 export default function ProblemPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const [problem, setProblem] = useState<Problem | null>(null);
@@ -18,11 +37,21 @@ export default function ProblemPage() {
   const [results, setResults] = useState<RunResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"testcase" | "result">("testcase");
+  const [locked, setLocked] = useState(false);
+  const [completed, setCompleted] = useState(false);
 
   useEffect(() => {
-    getProblem(id).then((p) => {
-      setProblem(p);
-      setCode(p.starter_code);
+    getProblems().then((all) => {
+      const sorted = sortProblems(all);
+      if (!isUnlocked(sorted, id)) {
+        setLocked(true);
+        return;
+      }
+      getProblem(id).then((p) => {
+        setProblem(p);
+        setCode(p.starter_code);
+        setCompleted(!!getProgress()[id]);
+      });
     });
   }, [id]);
 
@@ -58,6 +87,10 @@ export default function ProblemPage() {
     try {
       const res = await runCode(problem.id, code, "submit");
       setResults(res);
+      if (res.passed) {
+        setProblemCompleted(problem.id);
+        setCompleted(true);
+      }
     } catch (e) {
       setResults({
         passed: false,
@@ -74,6 +107,22 @@ export default function ProblemPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (locked) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center gap-4 text-muted-foreground">
+        <Lock className="w-12 h-12" />
+        <h1 className="text-xl font-semibold text-foreground">Problem Locked</h1>
+        <p>Complete the previous problems to unlock this one.</p>
+        <button
+          onClick={() => router.push("/")}
+          className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium transition-colors"
+        >
+          Back to Dashboard
+        </button>
+      </div>
+    );
   }
 
   if (!problem) {
@@ -101,6 +150,9 @@ export default function ProblemPage() {
           >
             {problem.difficulty}
           </span>
+          {completed && (
+            <span className="text-green-400 text-sm font-medium">Completed</span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -129,11 +181,7 @@ export default function ProblemPage() {
           <div className="text-sm text-muted-foreground">
             Week {problem.week} · Day {problem.day} · {problem.focus}
           </div>
-          <div className="prose prose-invert prose-sm max-w-none">
-            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-              {problem.description}
-            </pre>
-          </div>
+          <ProblemDescription content={problem.description} />
         </div>
 
         {/* Right: Editor + Tests */}
