@@ -1,6 +1,9 @@
 import { Problem, ProblemSummary, RunResponse } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const isServer = typeof window === "undefined";
+const API_URL = isServer
+  ? process.env.API_URL_SERVER || "http://backend:8000"
+  : process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`);
