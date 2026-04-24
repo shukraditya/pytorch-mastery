@@ -16,6 +16,7 @@ import {
   Position,
   getBezierPath,
   BaseEdge,
+  MarkerType,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { getProblems } from "@/lib/api";
@@ -122,6 +123,7 @@ function BezierEdge({
   targetPosition,
   style = {},
   selected,
+  markerEnd,
 }: EdgeProps) {
   const [edgePath] = getBezierPath({
     sourceX,
@@ -142,7 +144,7 @@ function BezierEdge({
         stroke: selected ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.12)",
         strokeWidth: selected ? 2 : 1.5,
       }}
-      markerEnd="url(#arrowhead)"
+      markerEnd={markerEnd}
     />
   );
 }
@@ -330,23 +332,15 @@ export default function SkillTreePage() {
           fitViewOptions={{ padding: 0.2 }}
           minZoom={0.2}
           maxZoom={2}
-          defaultEdgeOptions={{ type: "bezier" }}
+          defaultEdgeOptions={{
+            type: "bezier",
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: "rgba(255,255,255,0.25)",
+            },
+          }}
           proOptions={{ hideAttribution: true }}
         >
-          <svg style={{ position: "absolute", width: 0, height: 0 }}>
-            <defs>
-              <marker
-                id="arrowhead"
-                markerWidth="8"
-                markerHeight="6"
-                refX="7"
-                refY="3"
-                orient="auto"
-              >
-                <polygon points="0 0, 8 3, 0 6" fill="rgba(255,255,255,0.25)" />
-              </marker>
-            </defs>
-          </svg>
           <Background color="rgba(255,255,255,0.03)" gap={20} size={1} />
           <Controls
             style={{
