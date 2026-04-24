@@ -16,7 +16,6 @@ import {
   Position,
   getBezierPath,
   BaseEdge,
-  MarkerType,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { getProblems } from "@/lib/api";
@@ -123,7 +122,6 @@ function BezierEdge({
   targetPosition,
   style = {},
   selected,
-  markerEnd,
 }: EdgeProps) {
   const [edgePath] = getBezierPath({
     sourceX,
@@ -144,7 +142,6 @@ function BezierEdge({
         stroke: selected ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.12)",
         strokeWidth: selected ? 2 : 1.5,
       }}
-      markerEnd={markerEnd}
     />
   );
 }
@@ -332,14 +329,7 @@ export default function SkillTreePage() {
           fitViewOptions={{ padding: 0.2 }}
           minZoom={0.2}
           maxZoom={2}
-          defaultEdgeOptions={{
-            type: "bezier",
-            markerEnd: {
-              type: MarkerType.ArrowClosed,
-              color: "rgba(255,255,255,0.25)",
-              orient: "auto",
-            },
-          }}
+          defaultEdgeOptions={{ type: "bezier" }}
           proOptions={{ hideAttribution: true }}
         >
           <Background color="rgba(255,255,255,0.03)" gap={20} size={1} />
