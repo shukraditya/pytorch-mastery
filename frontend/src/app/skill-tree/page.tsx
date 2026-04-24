@@ -337,6 +337,7 @@ export default function SkillTreePage() {
             markerEnd: {
               type: MarkerType.ArrowClosed,
               color: "rgba(255,255,255,0.25)",
+              orient: "auto",
             },
           }}
           proOptions={{ hideAttribution: true }}
