@@ -11,8 +11,11 @@ import {
   type Node,
   type Edge,
   type NodeProps,
+  type EdgeProps,
   Handle,
   Position,
+  getBezierPath,
+  BaseEdge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { getProblems } from "@/lib/api";
@@ -109,6 +112,45 @@ function SkillNode({ data, selected }: NodeProps) {
   );
 }
 
+function BezierEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  style = {},
+  selected,
+}: EdgeProps) {
+  const [edgePath] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+    curvature: 0.35,
+  });
+
+  return (
+    <BaseEdge
+      id={id}
+      path={edgePath}
+      style={{
+        ...style,
+        stroke: selected ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.12)",
+        strokeWidth: selected ? 2 : 1.5,
+      }}
+      markerEnd="url(#arrowhead)"
+    />
+  );
+}
+
+const edgeTypes = {
+  bezier: BezierEdge,
+} as any;
+
 const nodeTypes: Record<string, React.ComponentType<NodeProps>> = {
   skill: SkillNode as React.ComponentType<NodeProps>,
 };
@@ -181,7 +223,7 @@ function buildFlowElements(problems: ProblemSummary[], progress: Record<string, 
         id: `${prereqId}-${p.id}`,
         source: prereqId,
         target: p.id,
-        type: "smoothstep",
+        type: "bezier",
         animated: false,
         style: { stroke: "rgba(255,255,255,0.12)", strokeWidth: 1.5 },
       });
@@ -283,13 +325,28 @@ export default function SkillTreePage() {
           onEdgesChange={onEdgesChange}
           onNodeClick={onNodeClick}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           fitView
           fitViewOptions={{ padding: 0.2 }}
           minZoom={0.2}
           maxZoom={2}
-          defaultEdgeOptions={{ type: "smoothstep" }}
+          defaultEdgeOptions={{ type: "bezier" }}
           proOptions={{ hideAttribution: true }}
         >
+          <svg style={{ position: "absolute", width: 0, height: 0 }}>
+            <defs>
+              <marker
+                id="arrowhead"
+                markerWidth="8"
+                markerHeight="6"
+                refX="7"
+                refY="3"
+                orient="auto"
+              >
+                <polygon points="0 0, 8 3, 0 6" fill="rgba(255,255,255,0.25)" />
+              </marker>
+            </defs>
+          </svg>
           <Background color="rgba(255,255,255,0.03)" gap={20} size={1} />
           <Controls
             style={{
