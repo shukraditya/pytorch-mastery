@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getProblems } from "@/lib/api";
 import { ProblemSummary } from "@/lib/types";
 import { getProgress, arePrerequisitesMet } from "@/lib/progress";
-import { CheckCircle2, Lock, Flame } from "lucide-react";
+import { CheckCircle2, Lock, Flame, Map as MapIcon } from "lucide-react";
 
 function DifficultyBadge({ level }: { level: string }) {
   const colors: Record<string, string> = {
@@ -155,7 +155,16 @@ export default function Home() {
             LeetCode-style problems to deepen your PyTorch fundamentals.
           </p>
         </div>
-        <ProgressRing total={problems.length} completed={completedCount} />
+        <div className="flex items-center gap-4">
+          <a
+            href="/skill-tree"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-muted/60 hover:bg-accent/60 text-sm font-medium transition-all border border-white/5"
+          >
+            <MapIcon className="w-4 h-4" />
+            Skill Tree
+          </a>
+          <ProgressRing total={problems.length} completed={completedCount} />
+        </div>
       </div>
 
       {/* Tier toggle */}
