@@ -1,34 +1,117 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  type Node,
+  type Edge,
+  type NodeProps,
+  Handle,
+  Position,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 import { getProblems } from "@/lib/api";
 import { ProblemSummary } from "@/lib/types";
 import { getProgress, arePrerequisitesMet } from "@/lib/progress";
-import { CheckCircle2, Lock, ArrowLeft, Map as MapIcon } from "lucide-react";
+import { ArrowLeft, Map as MapIcon, CheckCircle2, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-interface NodeLayout {
-  id: string;
-  x: number;
-  y: number;
-  level: number;
+const NODE_WIDTH = 160;
+const NODE_HEIGHT = 56;
+const COL_WIDTH = 220;
+const ROW_GAP = 80;
+
+interface NodeData extends Record<string, unknown> {
+  problem: ProblemSummary;
+  completed: boolean;
+  unlocked: boolean;
 }
 
-interface EdgeLayout {
-  from: string;
-  to: string;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
+function SkillNode({ data, selected }: NodeProps) {
+  const router = useRouter();
+  const d = data as NodeData;
+  const { problem, completed, unlocked } = d;
+  const isLocked = !unlocked && !completed;
+
+  let borderColor = "rgba(255,255,255,0.1)";
+  let bgColor = "rgba(255,255,255,0.03)";
+  let titleColor = "rgba(255,255,255,0.6)";
+  let metaColor = "rgba(255,255,255,0.3)";
+
+  if (completed) {
+    borderColor = "rgba(34,197,94,0.4)";
+    bgColor = "rgba(34,197,94,0.08)";
+    titleColor = "rgba(74,222,128,1)";
+    metaColor = "rgba(74,222,128,0.5)";
+  } else if (unlocked) {
+    if (problem.tier === "core") {
+      borderColor = "rgba(251,146,60,0.35)";
+      bgColor = "rgba(251,146,60,0.08)";
+    } else {
+      borderColor = "rgba(96,165,250,0.3)";
+      bgColor = "rgba(96,165,250,0.06)";
+    }
+    titleColor = "rgba(255,255,255,0.9)";
+    metaColor = "rgba(255,255,255,0.45)";
+  }
+
+  if (selected) {
+    borderColor = "rgba(255,255,255,0.6)";
+  }
+
+  return (
+    <div
+      className={`relative rounded-xl border px-3 py-2 transition-all duration-200 ${
+        isLocked ? "cursor-not-allowed" : "cursor-pointer hover:scale-[1.02]"
+      }`}
+      style={{
+        width: NODE_WIDTH,
+        height: NODE_HEIGHT,
+        backgroundColor: bgColor,
+        borderColor: borderColor,
+        boxShadow: selected
+          ? "0 0 0 2px rgba(255,255,255,0.15)"
+          : "0 4px 12px rgba(0,0,0,0.3)",
+      }}
+      onClick={() => router.push(`/problem/${problem.id}`)}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{ background: "transparent", border: "none", width: 1, height: 1 }}
+      />
+      <div className="flex flex-col justify-center h-full">
+        <div className="flex items-center gap-1.5">
+          <span
+            className="text-[11px] font-semibold truncate leading-tight"
+            style={{ color: titleColor }}
+          >
+            {problem.title}
+          </span>
+          {completed && <CheckCircle2 className="w-3 h-3 text-green-400 shrink-0" />}
+          {isLocked && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
+        </div>
+        <span className="text-[10px] mt-0.5" style={{ color: metaColor }}>
+          {problem.difficulty} · {problem.time_estimate}
+        </span>
+      </div>
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{ background: "transparent", border: "none", width: 1, height: 1 }}
+      />
+    </div>
+  );
 }
 
-const NODE_WIDTH = 140;
-const NODE_HEIGHT = 48;
-const COL_WIDTH = 180;
-const ROW_GAP = 64;
-const MARGIN_X = 40;
-const MARGIN_Y = 32;
+const nodeTypes: Record<string, React.ComponentType<NodeProps>> = {
+  skill: SkillNode as React.ComponentType<NodeProps>,
+};
 
 function computeTopology(problems: ProblemSummary[]): Map<string, number> {
   const levels = new Map<string, number>();
@@ -50,12 +133,7 @@ function computeTopology(problems: ProblemSummary[]): Map<string, number> {
   return levels;
 }
 
-function buildLayout(problems: ProblemSummary[]): {
-  nodes: NodeLayout[];
-  edges: EdgeLayout[];
-  width: number;
-  height: number;
-} {
+function buildFlowElements(problems: ProblemSummary[], progress: Record<string, boolean>): { nodes: Node[]; edges: Edge[] } {
   const levels = computeTopology(problems);
   const maxLevel = Math.max(0, ...Array.from(levels.values()));
 
@@ -66,86 +144,67 @@ function buildLayout(problems: ProblemSummary[]): {
     byLevel.get(lv)!.push(p);
   }
 
-  // Sort within each level alphabetically by title for stability
   for (const [, arr] of byLevel) {
     arr.sort((a, b) => a.title.localeCompare(b.title));
   }
 
-  const nodeMap = new Map<string, NodeLayout>();
+  const nodes: Node[] = [];
   let maxY = 0;
 
   for (let lv = 0; lv <= maxLevel; lv++) {
     const arr = byLevel.get(lv) ?? [];
     const totalHeight = arr.length * NODE_HEIGHT + (arr.length - 1) * ROW_GAP;
-    const startY = MARGIN_Y + Math.max(0, (600 - totalHeight) / 2);
+    const startY = Math.max(0, (600 - totalHeight) / 2);
 
     arr.forEach((p, i) => {
-      const x = MARGIN_X + lv * COL_WIDTH;
+      const x = lv * COL_WIDTH;
       const y = startY + i * (NODE_HEIGHT + ROW_GAP);
-      nodeMap.set(p.id, { id: p.id, x, y, level: lv });
       maxY = Math.max(maxY, y + NODE_HEIGHT);
+
+      nodes.push({
+        id: p.id,
+        type: "skill",
+        position: { x, y },
+        data: {
+          problem: p,
+          completed: !!progress[p.id],
+          unlocked: arePrerequisitesMet(p.prerequisites, progress),
+        },
+      });
     });
   }
 
-  const edges: EdgeLayout[] = [];
+  const edges: Edge[] = [];
   for (const p of problems) {
-    const to = nodeMap.get(p.id);
-    if (!to) continue;
     for (const prereqId of p.prerequisites) {
-      const from = nodeMap.get(prereqId);
-      if (from) {
-        edges.push({
-          from: prereqId,
-          to: p.id,
-          x1: from.x + NODE_WIDTH,
-          y1: from.y + NODE_HEIGHT / 2,
-          x2: to.x - 10,
-          y2: to.y + NODE_HEIGHT / 2,
-        });
-      }
+      edges.push({
+        id: `${prereqId}-${p.id}`,
+        source: prereqId,
+        target: p.id,
+        type: "smoothstep",
+        animated: false,
+        style: { stroke: "rgba(255,255,255,0.12)", strokeWidth: 1.5 },
+      });
     }
   }
 
-  const width = MARGIN_X * 2 + maxLevel * COL_WIDTH + NODE_WIDTH;
-  const height = maxY + MARGIN_Y;
-
-  return {
-    nodes: Array.from(nodeMap.values()),
-    edges,
-    width,
-    height,
-  };
-}
-
-function StatusBadge({
-  completed,
-  unlocked,
-}: {
-  completed: boolean;
-  unlocked: boolean;
-}) {
-  if (completed) {
-    return (
-      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-        <CheckCircle2 className="w-3 h-3 text-white" />
-      </span>
-    );
-  }
-  if (!unlocked) {
-    return (
-      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-muted flex items-center justify-center border border-border">
-        <Lock className="w-2.5 h-2.5 text-muted-foreground" />
-      </span>
-    );
-  }
-  return null;
+  return { nodes, edges };
 }
 
 export default function SkillTreePage() {
   const router = useRouter();
   const [problems, setProblems] = useState<ProblemSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hovered, setHovered] = useState<string | null>(null);
+
+  const progress = useMemo(() => getProgress(), []);
+
+  const initialElements = useMemo(() => {
+    if (problems.length === 0) return { nodes: [], edges: [] };
+    return buildFlowElements(problems, progress);
+  }, [problems, progress]);
+
+  const [nodes, , onNodesChange] = useNodesState(initialElements.nodes);
+  const [edges, , onEdgesChange] = useEdgesState(initialElements.edges);
 
   useEffect(() => {
     getProblems().then((data) => {
@@ -154,18 +213,20 @@ export default function SkillTreePage() {
     });
   }, []);
 
-  const progress = useMemo(() => getProgress(), []);
+  useEffect(() => {
+    if (problems.length > 0) {
+      const { nodes: newNodes, edges: newEdges } = buildFlowElements(problems, progress);
+      onNodesChange(newNodes.map((n) => ({ type: "add" as const, item: n })));
+      onEdgesChange(newEdges.map((e) => ({ type: "add" as const, item: e })));
+    }
+  }, [problems, progress, onNodesChange, onEdgesChange]);
 
-  const { nodes, edges, width, height } = useMemo(() => {
-    if (problems.length === 0) return { nodes: [], edges: [], width: 0, height: 0 };
-    return buildLayout(problems);
-  }, [problems]);
-
-  const nodeMap = useMemo(() => {
-    const m = new Map<string, ProblemSummary>();
-    for (const p of problems) m.set(p.id, p);
-    return m;
-  }, [problems]);
+  const onNodeClick = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      router.push(`/problem/${node.id}`);
+    },
+    [router]
+  );
 
   if (loading) {
     return (
@@ -176,9 +237,9 @@ export default function SkillTreePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="h-screen flex flex-col bg-background text-foreground">
       {/* Header */}
-      <header className="h-14 border-b border-white/5 flex items-center px-4 justify-between bg-background/60 backdrop-blur-xl shrink-0">
+      <header className="h-14 border-b border-white/5 flex items-center px-4 justify-between bg-background/60 backdrop-blur-xl shrink-0 z-10">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/")}
@@ -199,8 +260,12 @@ export default function SkillTreePage() {
             Completed
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full border border-primary" />
-            Unlocked
+            <span className="w-2.5 h-2.5 rounded-full border border-orange-400" />
+            Core
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full border border-blue-400" />
+            Depth
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-muted border border-border" />
@@ -209,142 +274,45 @@ export default function SkillTreePage() {
         </div>
       </header>
 
-      {/* Graph */}
-      <div className="p-6 overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          className="mx-auto"
-          style={{ minWidth: width, minHeight: height }}
+      {/* React Flow */}
+      <div className="flex-1 relative">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeClick={onNodeClick}
+          nodeTypes={nodeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.2 }}
+          minZoom={0.2}
+          maxZoom={2}
+          defaultEdgeOptions={{ type: "smoothstep" }}
+          proOptions={{ hideAttribution: true }}
         >
-          <defs>
-            <marker
-              id="arrowhead"
-              markerWidth="8"
-              markerHeight="6"
-              refX="7"
-              refY="3"
-              orient="auto"
-            >
-              <polygon points="0 0, 8 3, 0 6" fill="rgba(255,255,255,0.15)" />
-            </marker>
-            <marker
-              id="arrowhead-active"
-              markerWidth="8"
-              markerHeight="6"
-              refX="7"
-              refY="3"
-              orient="auto"
-            >
-              <polygon points="0 0, 8 3, 0 6" fill="rgba(255,255,255,0.4)" />
-            </marker>
-          </defs>
-
-          {/* Edges */}
-          {edges.map((e, i) => {
-            const isHovered = hovered === e.from || hovered === e.to;
-            const dx = e.x2 - e.x1;
-            const c1x = e.x1 + dx * 0.5;
-            const c2x = e.x2 - dx * 0.5;
-            const path = `M ${e.x1} ${e.y1} C ${c1x} ${e.y1}, ${c2x} ${e.y2}, ${e.x2} ${e.y2}`;
-
-            return (
-              <path
-                key={i}
-                d={path}
-                fill="none"
-                stroke={isHovered ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.1)"}
-                strokeWidth={isHovered ? 2 : 1}
-                markerEnd={isHovered ? "url(#arrowhead-active)" : "url(#arrowhead)"}
-                className="transition-all duration-200"
-              />
-            );
-          })}
-
-          {/* Nodes */}
-          {nodes.map((n) => {
-            const p = nodeMap.get(n.id);
-            if (!p) return null;
-
-            const completed = !!progress[p.id];
-            const unlocked = arePrerequisitesMet(p.prerequisites, progress);
-
-            const isLocked = !unlocked && !completed;
-            const isCompleted = completed;
-
-            let fill = "rgba(255,255,255,0.03)";
-            let stroke = "rgba(255,255,255,0.08)";
-            let textColor = "rgba(255,255,255,0.5)";
-
-            if (isCompleted) {
-              fill = "rgba(34,197,94,0.08)";
-              stroke = "rgba(34,197,94,0.3)";
-              textColor = "rgba(74,222,128,0.9)";
-            } else if (unlocked) {
-              fill = p.tier === "core" ? "rgba(251,146,60,0.06)" : "rgba(96,165,250,0.06)";
-              stroke = p.tier === "core" ? "rgba(251,146,60,0.25)" : "rgba(96,165,250,0.2)";
-              textColor = "rgba(255,255,255,0.85)";
-            }
-
-            const isHovered = hovered === p.id;
-
-            return (
-              <g
-                key={p.id}
-                transform={`translate(${n.x}, ${n.y})`}
-                className={isLocked ? "cursor-not-allowed" : "cursor-pointer"}
-                onMouseEnter={() => setHovered(p.id)}
-                onMouseLeave={() => setHovered(null)}
-                onClick={() => router.push(`/problem/${p.id}`)}
-              >
-                <rect
-                  width={NODE_WIDTH}
-                  height={NODE_HEIGHT}
-                  rx={10}
-                  fill={fill}
-                  stroke={isHovered ? "rgba(255,255,255,0.4)" : stroke}
-                  strokeWidth={isHovered ? 2 : 1}
-                  className="transition-all duration-200"
-                />
-                <text
-                  x={NODE_WIDTH / 2}
-                  y={18}
-                  textAnchor="middle"
-                  fill={textColor}
-                  fontSize={10}
-                  fontWeight={600}
-                  className="pointer-events-none select-none"
-                >
-                  {p.title}
-                </text>
-                <text
-                  x={NODE_WIDTH / 2}
-                  y={34}
-                  textAnchor="middle"
-                  fill={isHovered ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.35)"}
-                  fontSize={9}
-                  className="pointer-events-none select-none"
-                >
-                  {p.difficulty} · {p.time_estimate}
-                </text>
-
-                {/* Status dot */}
-                {isCompleted && (
-                  <circle cx={NODE_WIDTH - 6} cy={8} r={4} fill="#22c55e" />
-                )}
-                {isLocked && (
-                  <circle
-                    cx={NODE_WIDTH - 6}
-                    cy={8}
-                    r={4}
-                    fill="rgba(255,255,255,0.05)"
-                    stroke="rgba(255,255,255,0.15)"
-                    strokeWidth={1}
-                  />
-                )}
-              </g>
-            );
-          })}
-        </svg>
+          <Background color="rgba(255,255,255,0.03)" gap={20} size={1} />
+          <Controls
+            style={{
+              backgroundColor: "rgba(255,255,255,0.05)",
+              borderColor: "rgba(255,255,255,0.1)",
+            }}
+          />
+          <MiniMap
+            nodeStrokeWidth={3}
+            zoomable
+            pannable
+            style={{
+              backgroundColor: "rgba(0,0,0,0.5)",
+              borderColor: "rgba(255,255,255,0.1)",
+            }}
+            nodeColor={(node) => {
+              const data = (node.data as unknown) as NodeData;
+              if (data.completed) return "#22c55e";
+              if (!data.unlocked) return "rgba(255,255,255,0.1)";
+              return data.problem.tier === "core" ? "#fb923c" : "#60a5fa";
+            }}
+          />
+        </ReactFlow>
       </div>
     </div>
   );
