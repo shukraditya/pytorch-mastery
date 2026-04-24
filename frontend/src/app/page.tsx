@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getProblems } from "@/lib/api";
 import { ProblemSummary } from "@/lib/types";
-import { getProgress } from "@/lib/progress";
+import { getProgress, arePrerequisitesMet } from "@/lib/progress";
 import { CheckCircle2, Lock, Flame } from "lucide-react";
 
 function DifficultyBadge({ level }: { level: string }) {
@@ -30,22 +30,18 @@ function sortProblems(problems: ProblemSummary[]) {
 }
 
 function getUnlockStatus(
-  sorted: ProblemSummary[]
-): Map<string, { unlocked: boolean; completed: boolean }> {
+  problems: ProblemSummary[]
+): Map<string, { unlocked: boolean; completed: boolean; unlocks: string[] }> {
   const progress = getProgress();
-  const status = new Map<string, { unlocked: boolean; completed: boolean }>();
+  const status = new Map<string, { unlocked: boolean; completed: boolean; unlocks: string[] }>();
 
-  for (let i = 0; i < sorted.length; i++) {
-    const p = sorted[i];
+  for (const p of problems) {
     const completed = !!progress[p.id];
-    let unlocked = false;
-    if (i === 0) {
-      unlocked = true;
-    } else {
-      const prev = sorted[i - 1];
-      unlocked = !!progress[prev.id];
-    }
-    status.set(p.id, { unlocked, completed });
+    const unlocked = arePrerequisitesMet(p.prerequisites, progress);
+    const unlocks = problems
+      .filter((other) => other.prerequisites.includes(p.id))
+      .map((other) => other.id);
+    status.set(p.id, { unlocked, completed, unlocks });
   }
 
   return status;
@@ -123,6 +119,7 @@ function DashboardSkeleton() {
 export default function Home() {
   const [problems, setProblems] = useState<ProblemSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tierFilter, setTierFilter] = useState<"all" | "core">("all");
 
   useEffect(() => {
     getProblems().then((data) => {
@@ -161,78 +158,134 @@ export default function Home() {
         <ProgressRing total={problems.length} completed={completedCount} />
       </div>
 
+      {/* Tier toggle */}
+      <div className="flex items-center gap-2 mb-6">
+        <button
+          onClick={() => setTierFilter("all")}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            tierFilter === "all"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "bg-muted/60 text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          All
+        </button>
+        <button
+          onClick={() => setTierFilter("core")}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            tierFilter === "core"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "bg-muted/60 text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Core Only
+        </button>
+      </div>
+
       {/* Weeks */}
       <div className="space-y-10">
-        {Array.from(byWeek.entries()).map(([week, items], weekIndex) => (
-          <section
-            key={week}
-            className="animate-slide-up"
-            style={{ animationDelay: `${weekIndex * 60}ms`, opacity: 0 }}
-          >
-            <h2 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wider">
-              Week {week}
-            </h2>
-            <div className="grid gap-3">
-              {items.map((p, itemIndex) => {
-                const s = status.get(p.id)!;
-                const delay = weekIndex * 60 + itemIndex * 30;
+        {Array.from(byWeek.entries()).map(([week, items], weekIndex) => {
+          const visibleItems =
+            tierFilter === "core"
+              ? items.filter((p) => p.tier === "core")
+              : items;
+          if (visibleItems.length === 0) return null;
 
-                if (!s.unlocked) {
+          return (
+            <section
+              key={week}
+              className="animate-slide-up"
+              style={{ animationDelay: `${weekIndex * 60}ms`, opacity: 0 }}
+            >
+              <h2 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wider">
+                Week {week}
+              </h2>
+              <div className="grid gap-3">
+                {visibleItems.map((p, itemIndex) => {
+                  const s = status.get(p.id)!;
+                  const delay = weekIndex * 60 + itemIndex * 30;
+                  const remainingPrereqs = p.prerequisites.filter(
+                    (id) => !getProgress()[id]
+                  ).length;
+
+                  if (!s.unlocked) {
+                    return (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between p-4 rounded-xl border border-border/60 bg-muted/30 opacity-50 grayscale cursor-not-allowed transition-all duration-200"
+                        style={{ animationDelay: `${delay}ms` }}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm text-muted-foreground w-12">
+                            Day {p.day}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="font-medium flex items-center gap-2">
+                              {p.title}
+                              <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {p.focus}
+                            </div>
+                            {remainingPrereqs > 0 && (
+                              <div className="text-[10px] text-muted-foreground mt-0.5">
+                                Locked — complete {remainingPrereqs} prerequisite
+                                {remainingPrereqs > 1 ? "s" : ""}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] text-muted-foreground tabular-nums">
+                            ~{p.lines_estimate} lines
+                          </span>
+                          <DifficultyBadge level={p.difficulty} />
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return (
-                    <div
+                    <a
                       key={p.id}
-                      className="flex items-center justify-between p-4 rounded-xl border border-border/60 bg-muted/30 opacity-50 grayscale cursor-not-allowed transition-all duration-200"
+                      href={`/problem/${p.id}`}
+                      className="group flex items-center justify-between p-4 rounded-xl border border-border/60 bg-card hover:bg-accent/40 hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/20 hover:shadow-black/20 transition-all duration-200 ease-out"
                       style={{ animationDelay: `${delay}ms` }}
                     >
-                      <div className="flex items-center gap-4">
-                        <span className="text-sm text-muted-foreground w-12">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <span className="text-sm text-muted-foreground w-12 shrink-0">
                           Day {p.day}
                         </span>
-                        <div>
-                          <div className="font-medium flex items-center gap-2">
+                        <div className="min-w-0">
+                          <div className="font-medium flex items-center gap-2 group-hover:text-foreground transition-colors">
                             {p.title}
-                            <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                            {s.completed && (
+                              <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+                            )}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-muted-foreground truncate">
                             {p.focus}
                           </div>
-                        </div>
-                      </div>
-                      <DifficultyBadge level={p.difficulty} />
-                    </div>
-                  );
-                }
-
-                return (
-                  <a
-                    key={p.id}
-                    href={`/problem/${p.id}`}
-                    className="group flex items-center justify-between p-4 rounded-xl border border-border/60 bg-card hover:bg-accent/40 hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/20 hover:shadow-black/20 transition-all duration-200 ease-out"
-                    style={{ animationDelay: `${delay}ms` }}
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm text-muted-foreground w-12">
-                        Day {p.day}
-                      </span>
-                      <div>
-                        <div className="font-medium flex items-center gap-2 group-hover:text-foreground transition-colors">
-                          {p.title}
-                          {s.completed && (
-                            <CheckCircle2 className="w-4 h-4 text-green-400" />
+                          {s.completed && s.unlocks.length > 0 && (
+                            <div className="text-[10px] text-muted-foreground mt-0.5">
+                              Unlocks: {s.unlocks.join(", ")}
+                            </div>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {p.focus}
-                        </div>
                       </div>
-                    </div>
-                    <DifficultyBadge level={p.difficulty} />
-                  </a>
-                );
-              })}
-            </div>
-          </section>
-        ))}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          {p.time_estimate}
+                        </span>
+                        <DifficultyBadge level={p.difficulty} />
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
       </div>
     </main>
   );

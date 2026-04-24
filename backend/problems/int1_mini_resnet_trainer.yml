@@ -1,0 +1,99 @@
+id: int1
+title: Mini-ResNet Trainer
+week: 4
+day: 12
+difficulty: Hard
+focus: Wire together components, confront real shape/device/LR bugs
+lines_estimate: 80
+time_estimate: 4-5 hrs
+tier: core
+prerequisites:
+  - cv1
+  - bn1
+  - res1
+  - tl1
+  - tl2
+  - opt2
+  - sch1
+description: |
+  Build a complete 3-layer ResNet for CIFAR-10 and verify the forward pass.
+
+  Implement `create_mini_resnet(batch_size=1)` that:
+
+  1. Defines a `ResidualBlock(channels)` module with:
+     - `Conv2d → BatchNorm2d → ReLU → Conv2d → BatchNorm2d`
+     - A skip connection adding the input to the block output
+     - ReLU after the add
+
+  2. Defines a `MiniResNet` module with:
+     - `Conv2d(3, 16, kernel_size=3, padding=1)`
+     - `BatchNorm2d(16)`
+     - `ReLU`
+     - `ResidualBlock(16)`
+     - `AdaptiveAvgPool2d(1)`
+     - `Flatten`
+     - `Linear(16, 10)`
+
+  3. Generates a random input of shape `(batch_size, 3, 32, 32)`
+  4. Returns the forward-pass output logits
+
+  The harness only checks that the output has the correct shape and dtype — but getting there means you correctly wired conv, batch norm, residual blocks, pooling, and a classifier head.
+
+  **Self-test:** After passing the harness, try training this model on CIFAR-10 for 10 epochs. Can you hit >60% validation accuracy?
+starter_code: |
+  import torch
+  import torch.nn as nn
+
+  class ResidualBlock(nn.Module):
+      def __init__(self, channels):
+          super().__init__()
+          # TODO: define layers
+          pass
+
+      def forward(self, x):
+          # TODO
+          pass
+
+  class MiniResNet(nn.Module):
+      def __init__(self, num_classes=10):
+          super().__init__()
+          # TODO: define layers
+          pass
+
+      def forward(self, x):
+          # TODO
+          pass
+
+  def create_mini_resnet(batch_size=1):
+      """Build MiniResNet, run forward on random CIFAR-sized batch, return logits."""
+      pass
+function_name: create_mini_resnet
+test_cases:
+  visible:
+    - name: Batch of 4
+      inputs:
+        batch_size: 4
+      expected:
+        shape:
+          - 4
+          - 10
+        dtype: float32
+    - name: Batch of 1
+      inputs:
+        batch_size: 1
+      expected:
+        shape:
+          - 1
+          - 10
+        dtype: float32
+  hidden:
+    - name: Batch of 8
+      inputs:
+        batch_size: 8
+      expected:
+        shape:
+          - 8
+          - 10
+        dtype: float32
+validation:
+  type: match_tensor

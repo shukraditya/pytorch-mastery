@@ -5,6 +5,10 @@ export interface ProblemSummary {
   day: number;
   difficulty: string;
   focus: string;
+  prerequisites: string[];
+  lines_estimate: number;
+  time_estimate: string;
+  tier: "core" | "depth";
 }
 
 export interface Example {
@@ -20,6 +24,10 @@ export interface Problem {
   day: number;
   difficulty: string;
   focus: string;
+  prerequisites: string[];
+  lines_estimate: number;
+  time_estimate: string;
+  tier: "core" | "depth";
   description: string;
   starter_code: string;
   function_name: string;

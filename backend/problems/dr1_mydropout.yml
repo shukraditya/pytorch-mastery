@@ -4,53 +4,60 @@ day: 6
 week: 2
 difficulty: Medium
 focus: Stochastic layers, inference behavior
-description: |
-  Implement `my_dropout(x, p=0.5, training=True)` from scratch.
+description: 'Implement `my_dropout(x, p=0.5, training=True)` from scratch.
 
-  In training: create a binary mask where each element is kept with probability `(1-p)`, scale by `1/(1-p)`, and multiply with x.
+
+  In training: create a binary mask where each element is kept with probability `(1-p)`,
+  scale by `1/(1-p)`, and multiply with x.
+
 
   In eval: return x unchanged.
 
-  Use `torch.rand_like` for the mask.
-starter_code: |
-  import torch
 
-  def my_dropout(x: torch.Tensor, p: float = 0.5, training: bool = True) -> torch.Tensor:
-      """Custom dropout implementation."""
-      pass
+  Use `torch.rand_like` for the mask.
+
+  '
+starter_code: "import torch\n\ndef my_dropout(x: torch.Tensor, p: float = 0.5, training:\
+  \ bool = True) -> torch.Tensor:\n    \"\"\"Custom dropout implementation.\"\"\"\n\
+  \    pass\n"
 function_name: my_dropout
 test_cases:
   visible:
-    - name: Eval Mode
-      inputs:
-        x: torch.tensor([1.0, 2.0, 3.0])
-        p: 0.5
-        training: False
-      expected:
-        value: torch.tensor([1.0, 2.0, 3.0])
-    - name: Zero Prob
-      inputs:
-        x: torch.tensor([1.0, 2.0, 3.0])
-        p: 0.0
-        training: True
-      expected:
-        value: torch.tensor([1.0, 2.0, 3.0])
+  - name: Eval Mode
+    inputs:
+      x: torch.tensor([1.0, 2.0, 3.0])
+      p: 0.5
+      training: false
+    expected:
+      value: torch.tensor([1.0, 2.0, 3.0])
+  - name: Zero Prob
+    inputs:
+      x: torch.tensor([1.0, 2.0, 3.0])
+      p: 0.0
+      training: true
+    expected:
+      value: torch.tensor([1.0, 2.0, 3.0])
   hidden:
-    - name: Full Drop
-      inputs:
-        x: torch.tensor([1.0, 2.0, 3.0])
-        p: 1.0
-        training: True
-      expected:
-        value: torch.tensor([0.0, 0.0, 0.0])
-    - name: 2D Eval
-      inputs:
-        x: torch.ones(2, 3)
-        p: 0.5
-        training: False
-      expected:
-        value: torch.ones(2, 3)
+  - name: Full Drop
+    inputs:
+      x: torch.tensor([1.0, 2.0, 3.0])
+      p: 1.0
+      training: true
+    expected:
+      value: torch.tensor([0.0, 0.0, 0.0])
+  - name: 2D Eval
+    inputs:
+      x: torch.ones(2, 3)
+      p: 0.5
+      training: false
+    expected:
+      value: torch.ones(2, 3)
 validation:
   type: allclose
   rtol: 1e-05
   atol: 1e-08
+prerequisites:
+- nn1
+lines_estimate: 12
+time_estimate: 30 min
+tier: depth

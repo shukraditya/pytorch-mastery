@@ -1,0 +1,72 @@
+id: sh4
+title: Predict Broadcast Shape
+week: 1
+day: 2
+difficulty: Easy
+focus: Broadcasting rules — the #1 source of silent bugs
+lines_estimate: 5
+time_estimate: 15 min
+tier: core
+prerequisites:
+  - sh1
+description: |
+  Implement `predict_broadcast_shape(a_shape, b_shape)` that returns the broadcasted shape of two tensors *without actually creating them*.
+
+  Broadcasting rules (NumPy / PyTorch):
+  1. Pad the shorter shape with `1`s on the left until both have the same length.
+  2. For each dimension, the sizes must be **equal** or **one of them must be 1**.
+  3. If any dimension violates this rule, the shapes are incompatible.
+
+  If compatible, return the resulting shape as a `tuple` of ints.
+  If incompatible, return `None`.
+
+  **Examples:**
+  - `(3, 1, 4)` and `(1, 5, 1)` → `(3, 5, 4)`
+  - `(5, 4)` and `()` → `(5, 4)`
+  - `(2, 3)` and `(3, 2)` → `None` (incompatible)
+starter_code: |
+  def predict_broadcast_shape(a_shape, b_shape):
+      """Return the broadcasted shape as a tuple, or None if incompatible."""
+      pass
+function_name: predict_broadcast_shape
+test_cases:
+  visible:
+    - name: Basic broadcast
+      inputs:
+        a_shape: (3, 1, 4)
+        b_shape: (1, 5, 1)
+      expected:
+        value: (3, 5, 4)
+    - name: Incompatible
+      inputs:
+        a_shape: (2, 3)
+        b_shape: (3, 2)
+      expected:
+        value: None
+    - name: Scalar broadcast
+      inputs:
+        a_shape: (5, 4)
+        b_shape: ()
+      expected:
+        value: (5, 4)
+  hidden:
+    - name: Three-way alignment
+      inputs:
+        a_shape: (1, 2, 1)
+        b_shape: (3, 1, 4)
+      expected:
+        value: (3, 2, 4)
+    - name: Equal shapes
+      inputs:
+        a_shape: (2, 3, 4)
+        b_shape: (2, 3, 4)
+      expected:
+        value: (2, 3, 4)
+    - name: One-sided pad
+      inputs:
+        a_shape: (8,)
+        b_shape: (4, 4, 8)
+      expected:
+        value: (4, 4, 8)
+validation:
+  type: equality

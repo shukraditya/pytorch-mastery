@@ -4,48 +4,56 @@ day: 5
 week: 2
 difficulty: Medium
 focus: gather, negative log-likelihood
-description: |
-  Implement `manual_cross_entropy(logits, targets)` from scratch without using `F.cross_entropy`.
+description: 'Implement `manual_cross_entropy(logits, targets)` from scratch without
+  using `F.cross_entropy`.
+
 
   Steps:
-  1. Compute log-softmax: `logits - log(sum(exp(logits), dim=1))`
-  2. Gather the log-probabilities at the target indices
-  3. Return the negative mean
-starter_code: |
-  import torch
 
-  def manual_cross_entropy(logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-      """Compute cross-entropy loss manually."""
-      pass
+  1. Compute log-softmax: `logits - log(sum(exp(logits), dim=1))`
+
+  2. Gather the log-probabilities at the target indices
+
+  3. Return the negative mean
+
+  '
+starter_code: "import torch\n\ndef manual_cross_entropy(logits: torch.Tensor, targets:\
+  \ torch.Tensor) -> torch.Tensor:\n    \"\"\"Compute cross-entropy loss manually.\"\
+  \"\"\n    pass\n"
 function_name: manual_cross_entropy
 test_cases:
   visible:
-    - name: Basic
-      inputs:
-        logits: torch.tensor([[2.0, 1.0, 0.1], [0.5, 2.5, 0.3]])
-        targets: torch.tensor([0, 1])
-      expected:
-        value: torch.nn.functional.cross_entropy(logits, targets)
-    - name: Uniform
-      inputs:
-        logits: torch.tensor([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
-        targets: torch.tensor([0, 1])
-      expected:
-        value: torch.nn.functional.cross_entropy(logits, targets)
+  - name: Basic
+    inputs:
+      logits: torch.tensor([[2.0, 1.0, 0.1], [0.5, 2.5, 0.3]])
+      targets: torch.tensor([0, 1])
+    expected:
+      value: torch.nn.functional.cross_entropy(logits, targets)
+  - name: Uniform
+    inputs:
+      logits: torch.tensor([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+      targets: torch.tensor([0, 1])
+    expected:
+      value: torch.nn.functional.cross_entropy(logits, targets)
   hidden:
-    - name: Single Class
-      inputs:
-        logits: torch.tensor([[5.0, 0.0, 0.0]])
-        targets: torch.tensor([0])
-      expected:
-        value: torch.nn.functional.cross_entropy(logits, targets)
-    - name: Batch
-      inputs:
-        logits: torch.randn(4, 10)
-        targets: torch.tensor([0, 5, 3, 8])
-      expected:
-        value: torch.nn.functional.cross_entropy(logits, targets)
+  - name: Single Class
+    inputs:
+      logits: torch.tensor([[5.0, 0.0, 0.0]])
+      targets: torch.tensor([0])
+    expected:
+      value: torch.nn.functional.cross_entropy(logits, targets)
+  - name: Batch
+    inputs:
+      logits: torch.randn(4, 10)
+      targets: torch.tensor([0, 5, 3, 8])
+    expected:
+      value: torch.nn.functional.cross_entropy(logits, targets)
 validation:
   type: allclose
   rtol: 1e-03
   atol: 1e-05
+prerequisites:
+- nn1
+lines_estimate: 10
+time_estimate: 30 min
+tier: core

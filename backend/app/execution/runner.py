@@ -72,6 +72,14 @@ def _build_harness(problem: dict, user_code: str, test_cases: list[dict]) -> str
                 expected_str = str(expected)
                 error = "; ".join(msgs) if msgs else None
         """)
+    elif val_type == "equality":
+        check_logic = textwrap.dedent("""\
+            expected_val = _eval_expected(expected["value"], _globals)
+            passed = out == expected_val
+            actual = str(out)
+            expected_str = str(expected_val)
+            error = None
+        """)
     elif val_type == "length":
         check_logic = textwrap.dedent("""\
             expected_len = expected.get("length", 0)

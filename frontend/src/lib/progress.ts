@@ -23,6 +23,15 @@ export function isProblemCompleted(problemId: string): boolean {
   return !!getProgress()[problemId];
 }
 
+export function arePrerequisitesMet(
+  prerequisites: string[],
+  progress?: ProgressMap
+): boolean {
+  if (prerequisites.length === 0) return true;
+  const p = progress ?? getProgress();
+  return prerequisites.every((id) => !!p[id]);
+}
+
 export function clearProgress(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(STORAGE_KEY);

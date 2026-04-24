@@ -26,5 +26,9 @@ def list_problems() -> list[dict]:
                 "day": data["day"],
                 "difficulty": data["difficulty"],
                 "focus": data.get("focus", ""),
+                "prerequisites": data.get("prerequisites", []),
+                "lines_estimate": data.get("lines_estimate", 0),
+                "time_estimate": data.get("time_estimate", ""),
+                "tier": data.get("tier", "core"),
             })
     return problems

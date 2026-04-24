@@ -1,66 +1,75 @@
 id: res1
 title: Residual Block
-day: 11
+day: 12
 week: 4
 difficulty: Medium
 focus: Pre-LN vs Post-LN, trainability
-description: |
-  Implement a `ResidualBlock` module with Pre-LayerNorm:
+description: 'Implement a `ResidualBlock` module with Pre-LayerNorm:
+
 
   ```
+
   y = x + sublayer(LayerNorm(x))
+
   ```
+
 
   where `sublayer` is a provided function (e.g., a linear layer).
 
+
   The forward should accept `sublayer` as argument and return the residual output.
-starter_code: |
-  import torch
-  import torch.nn as nn
 
-  class ResidualBlock(nn.Module):
-      def __init__(self, dim):
-          super().__init__()
-          pass
-
-      def forward(self, x, sublayer):
-          """Pre-LN residual connection."""
-          pass
-
-  def residual_forward(x, dim, sublayer):
-      """Apply residual block."""
-      block = ResidualBlock(dim)
-      return block(x, sublayer)
+  '
+starter_code: "import torch\nimport torch.nn as nn\n\nclass ResidualBlock(nn.Module):\n\
+  \    def __init__(self, dim):\n        super().__init__()\n        pass\n\n    def\
+  \ forward(self, x, sublayer):\n        \"\"\"Pre-LN residual connection.\"\"\"\n\
+  \        pass\n\ndef residual_forward(x, dim, sublayer):\n    \"\"\"Apply residual\
+  \ block.\"\"\"\n    block = ResidualBlock(dim)\n    return block(x, sublayer)\n"
 function_name: residual_forward
 test_cases:
   visible:
-    - name: Basic
-      setup: |
-        linear = torch.nn.Linear(4, 4)
-      inputs:
-        x: torch.ones(1, 4)
-        dim: 4
-        sublayer: linear
-      expected:
-        shape: [1, 4]
-    - name: Batch
-      setup: |
-        linear = torch.nn.Linear(8, 8)
-      inputs:
-        x: torch.randn(4, 8)
-        dim: 8
-        sublayer: linear
-      expected:
-        shape: [4, 8]
+  - name: Basic
+    setup: 'linear = torch.nn.Linear(4, 4)
+
+      '
+    inputs:
+      x: torch.ones(1, 4)
+      dim: 4
+      sublayer: linear
+    expected:
+      shape:
+      - 1
+      - 4
+  - name: Batch
+    setup: 'linear = torch.nn.Linear(8, 8)
+
+      '
+    inputs:
+      x: torch.randn(4, 8)
+      dim: 8
+      sublayer: linear
+    expected:
+      shape:
+      - 4
+      - 8
   hidden:
-    - name: Large
-      setup: |
-        linear = torch.nn.Linear(64, 64)
-      inputs:
-        x: torch.randn(16, 64)
-        dim: 64
-        sublayer: linear
-      expected:
-        shape: [16, 64]
+  - name: Large
+    setup: 'linear = torch.nn.Linear(64, 64)
+
+      '
+    inputs:
+      x: torch.randn(16, 64)
+      dim: 64
+      sublayer: linear
+    expected:
+      shape:
+      - 16
+      - 64
 validation:
   type: match_tensor
+prerequisites:
+- bn1
+- mha1
+lines_estimate: 20
+time_estimate: 1 hr
+tier: core

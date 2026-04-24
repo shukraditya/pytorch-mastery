@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { getProblem, getProblems, runCode } from "@/lib/api";
 import { Problem, ProblemSummary, RunResponse, Example } from "@/lib/types";
-import { getProgress, setProblemCompleted } from "@/lib/progress";
+import { getProgress, setProblemCompleted, arePrerequisitesMet } from "@/lib/progress";
 import dynamic from "next/dynamic";
 import { Play, Send, Terminal, ListChecks, Lock, ChevronLeft, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import ProblemDescription from "@/components/ProblemDescription";
@@ -20,11 +20,19 @@ function sortProblems(problems: ProblemSummary[]) {
 }
 
 function isUnlocked(sorted: ProblemSummary[], id: string): boolean {
-  const idx = sorted.findIndex((p) => p.id === id);
-  if (idx <= 0) return true;
+  const problem = sorted.find((p) => p.id === id);
+  if (!problem) return false;
   const progress = getProgress();
-  const prev = sorted[idx - 1];
-  return !!progress[prev.id];
+  return arePrerequisitesMet(problem.prerequisites, progress);
+}
+
+function getUnlocks(sorted: ProblemSummary[], id: string): ProblemSummary[] {
+  return sorted.filter((p) => p.prerequisites.includes(id));
+}
+
+function parseTimeEstimate(time: string): number {
+  const match = time.match(/(\d+(?:\.\d+)?)\s*hr/);
+  return match ? parseFloat(match[1]) : 0;
 }
 
 function formatExampleInput(inputs: Record<string, string>): string {
@@ -98,6 +106,7 @@ export default function ProblemPage() {
   const [activeTab, setActiveTab] = useState<"testcase" | "result">("testcase");
   const [locked, setLocked] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [unlocks, setUnlocks] = useState<ProblemSummary[]>([]);
   const [leftWidth, setLeftWidth] = useState(45);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -117,6 +126,7 @@ export default function ProblemPage() {
         setProblem(p);
         setCode(p.starter_code);
         setCompleted(!!getProgress()[id]);
+        setUnlocks(getUnlocks(sorted, id));
       });
     });
   }, [id]);
@@ -343,6 +353,59 @@ export default function ProblemPage() {
               {problem.focus}
             </div>
 
+            {/* Effort banner */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${
+                  problem.difficulty === "Easy"
+                    ? "bg-green-500/10 text-green-400 border-green-500/20"
+                    : problem.difficulty === "Medium"
+                    ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                    : "bg-red-500/10 text-red-400 border-red-500/20"
+                }`}
+              >
+                {problem.difficulty}
+              </span>
+              <span className="text-[11px] text-muted-foreground tabular-nums">
+                ~{problem.lines_estimate} lines
+              </span>
+              <span className="text-[11px] text-muted-foreground tabular-nums">
+                {problem.time_estimate}
+              </span>
+              <span
+                className={`text-[11px] font-medium uppercase tracking-wider ${
+                  problem.tier === "core" ? "text-orange-400" : "text-blue-400"
+                }`}
+              >
+                {problem.tier}
+              </span>
+            </div>
+
+            {/* Time warning */}
+            {parseTimeEstimate(problem.time_estimate) >= 2 && (
+              <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-3 py-2 text-xs text-yellow-400 flex items-center gap-2">
+                <span className="font-semibold">Deep problem:</span>
+                Consider breaking it into sessions.
+              </div>
+            )}
+
+            {/* Why this matters */}
+            <div className="rounded-xl border border-white/5 bg-muted/30 p-3 text-sm">
+              <p className="text-muted-foreground">
+                You&apos;re learning this because:{' '}
+                <span className="text-foreground font-medium">{problem.focus}</span>
+                {unlocks.length > 0 && (
+                  <>
+                    . After solving, you&apos;ll unlock:{" "}
+                    <span className="text-foreground font-medium">
+                      {unlocks.map((u) => u.title).join(", ")}
+                    </span>
+                  </>
+                )}
+                .
+              </p>
+            </div>
+
             {/* Description */}
             <ProblemDescription content={problem.description} />
 
@@ -470,6 +533,34 @@ export default function ProblemPage() {
                 </div>
               ) : results ? (
                 <div className="space-y-2 animate-fade-in">
+                  {results.passed && completed && (
+                    <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4 mb-3">
+                      <div className="flex items-center gap-2 font-semibold text-green-400 text-sm mb-1">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Completed!
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        You now understand:{" "}
+                        <span className="text-foreground font-medium">{problem.focus}</span>
+                      </p>
+                      {unlocks.length > 0 && (
+                        <div className="mt-2">
+                          <span className="text-xs text-muted-foreground">Next up:</span>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {unlocks.map((u) => (
+                              <a
+                                key={u.id}
+                                href={`/problem/${u.id}`}
+                                className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
+                              >
+                                {u.title}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {results.results.map((r, i) => (
                     <ResultCard key={i} result={r} index={i} />
                   ))}

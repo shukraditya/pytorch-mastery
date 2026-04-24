@@ -4,67 +4,89 @@ day: 7
 week: 3
 difficulty: Medium
 focus: Effective batch size, VRAM constraints
-description: |
-  Write a function `accumulate_gradients(model, batches, criterion, optimizer, accumulation_steps)` that performs gradient accumulation over multiple mini-batches.
+description: 'Write a function `accumulate_gradients(model, batches, criterion, optimizer,
+  accumulation_steps)` that performs gradient accumulation over multiple mini-batches.
+
 
   Steps:
+
   1. `optimizer.zero_grad()` once at the start
+
   2. For each batch in `batches`, compute loss and `loss.backward()`
+
   3. Only call `optimizer.step()` every `accumulation_steps` batches
+
   4. Normalize the loss by `accumulation_steps` before backward
 
-  Return the list of loss values.
-starter_code: |
-  import torch
 
-  def accumulate_gradients(model, batches, criterion, optimizer, accumulation_steps):
-      """Accumulate gradients over multiple mini-batches."""
-      pass
+  Return the list of loss values.
+
+  '
+starter_code: "import torch\n\ndef accumulate_gradients(model, batches, criterion,\
+  \ optimizer, accumulation_steps):\n    \"\"\"Accumulate gradients over multiple\
+  \ mini-batches.\"\"\"\n    pass\n"
 function_name: accumulate_gradients
 test_cases:
   visible:
-    - name: Two Steps
-      setup: |
-        model = torch.nn.Linear(2, 1)
-        criterion = torch.nn.MSELoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-        batches = [(torch.randn(2, 2), torch.randn(2, 1)) for _ in range(4)]
-      inputs:
-        model: model
-        batches: batches
-        criterion: criterion
-        optimizer: optimizer
-        accumulation_steps: 2
-      expected:
-        length: 4
-    - name: Single Step
-      setup: |
-        model = torch.nn.Linear(2, 1)
-        criterion = torch.nn.MSELoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-        batches = [(torch.randn(2, 2), torch.randn(2, 1)) for _ in range(2)]
-      inputs:
-        model: model
-        batches: batches
-        criterion: criterion
-        optimizer: optimizer
-        accumulation_steps: 1
-      expected:
-        length: 2
+  - name: Two Steps
+    setup: 'model = torch.nn.Linear(2, 1)
+
+      criterion = torch.nn.MSELoss()
+
+      optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+
+      batches = [(torch.randn(2, 2), torch.randn(2, 1)) for _ in range(4)]
+
+      '
+    inputs:
+      model: model
+      batches: batches
+      criterion: criterion
+      optimizer: optimizer
+      accumulation_steps: 2
+    expected:
+      length: 4
+  - name: Single Step
+    setup: 'model = torch.nn.Linear(2, 1)
+
+      criterion = torch.nn.MSELoss()
+
+      optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+
+      batches = [(torch.randn(2, 2), torch.randn(2, 1)) for _ in range(2)]
+
+      '
+    inputs:
+      model: model
+      batches: batches
+      criterion: criterion
+      optimizer: optimizer
+      accumulation_steps: 1
+    expected:
+      length: 2
   hidden:
-    - name: No Accumulation
-      setup: |
-        model = torch.nn.Linear(2, 1)
-        criterion = torch.nn.MSELoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-        batches = [(torch.randn(2, 2), torch.randn(2, 1)) for _ in range(3)]
-      inputs:
-        model: model
-        batches: batches
-        criterion: criterion
-        optimizer: optimizer
-        accumulation_steps: 3
-      expected:
-        length: 3
+  - name: No Accumulation
+    setup: 'model = torch.nn.Linear(2, 1)
+
+      criterion = torch.nn.MSELoss()
+
+      optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+
+      batches = [(torch.randn(2, 2), torch.randn(2, 1)) for _ in range(3)]
+
+      '
+    inputs:
+      model: model
+      batches: batches
+      criterion: criterion
+      optimizer: optimizer
+      accumulation_steps: 3
+    expected:
+      length: 3
 validation:
   type: length
+prerequisites:
+- tl1
+lines_estimate: 15
+time_estimate: 45 min
+tier: depth

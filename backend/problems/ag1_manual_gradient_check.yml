@@ -4,41 +4,44 @@ day: 3
 week: 1
 difficulty: Medium
 focus: The autograd tape
-description: |
-  Write a function `manual_gradient_check(x)` that computes `y = x^3 + 2*x` and returns the gradient `dy/dx` evaluated at `x` using PyTorch autograd.
+description: 'Write a function `manual_gradient_check(x)` that computes `y = x^3 +
+  2*x` and returns the gradient `dy/dx` evaluated at `x` using PyTorch autograd.
+
 
   Return the gradient tensor (not the value of y).
-starter_code: |
-  import torch
 
-  def manual_gradient_check(x: torch.Tensor) -> torch.Tensor:
-      """Compute dy/dx where y = x^3 + 2*x using autograd."""
-      pass
+  '
+starter_code: "import torch\n\ndef manual_gradient_check(x: torch.Tensor) -> torch.Tensor:\n\
+  \    \"\"\"Compute dy/dx where y = x^3 + 2*x using autograd.\"\"\"\n    pass\n"
 function_name: manual_gradient_check
 test_cases:
   visible:
-    - name: Simple
-      inputs:
-        x: torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
-      expected:
-        value: torch.tensor([5.0, 14.0, 29.0])
-    - name: Scalar
-      inputs:
-        x: torch.tensor(4.0, requires_grad=True)
-      expected:
-        value: torch.tensor(50.0)
+  - name: Simple
+    inputs:
+      x: torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+    expected:
+      value: torch.tensor([5.0, 14.0, 29.0])
+  - name: Scalar
+    inputs:
+      x: torch.tensor(4.0, requires_grad=True)
+    expected:
+      value: torch.tensor(50.0)
   hidden:
-    - name: Negative
-      inputs:
-        x: torch.tensor([-1.0, 0.0, 1.0], requires_grad=True)
-      expected:
-        value: torch.tensor([5.0, 2.0, 5.0])
-    - name: 2D
-      inputs:
-        x: torch.tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad=True)
-      expected:
-        value: torch.tensor([[5.0, 14.0], [29.0, 50.0]])
+  - name: Negative
+    inputs:
+      x: torch.tensor([-1.0, 0.0, 1.0], requires_grad=True)
+    expected:
+      value: torch.tensor([5.0, 2.0, 5.0])
+  - name: 2D
+    inputs:
+      x: torch.tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad=True)
+    expected:
+      value: torch.tensor([[5.0, 14.0], [29.0, 50.0]])
 validation:
   type: allclose
   rtol: 1e-05
   atol: 1e-08
+prerequisites: []
+lines_estimate: 8
+time_estimate: 30 min
+tier: core
