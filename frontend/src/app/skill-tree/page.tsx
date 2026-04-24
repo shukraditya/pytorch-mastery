@@ -245,8 +245,8 @@ export default function SkillTreePage() {
     return buildFlowElements(problems, progress);
   }, [problems, progress]);
 
-  const [nodes, , onNodesChange] = useNodesState(initialElements.nodes);
-  const [edges, , onEdgesChange] = useEdgesState(initialElements.edges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialElements.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialElements.edges);
 
   useEffect(() => {
     getProblems().then((data) => {
@@ -258,10 +258,10 @@ export default function SkillTreePage() {
   useEffect(() => {
     if (problems.length > 0) {
       const { nodes: newNodes, edges: newEdges } = buildFlowElements(problems, progress);
-      onNodesChange(newNodes.map((n) => ({ type: "add" as const, item: n })));
-      onEdgesChange(newEdges.map((e) => ({ type: "add" as const, item: e })));
+      setNodes(newNodes);
+      setEdges(newEdges);
     }
-  }, [problems, progress, onNodesChange, onEdgesChange]);
+  }, [problems, progress, setNodes, setEdges]);
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
