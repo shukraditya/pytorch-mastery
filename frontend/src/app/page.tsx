@@ -4,17 +4,17 @@ import { useEffect, useState } from "react";
 import { getProblems } from "@/lib/api";
 import { ProblemSummary } from "@/lib/types";
 import { getProgress } from "@/lib/progress";
-import { CheckCircle2, Lock } from "lucide-react";
+import { CheckCircle2, Lock, Flame } from "lucide-react";
 
 function DifficultyBadge({ level }: { level: string }) {
   const colors: Record<string, string> = {
-    Easy: "bg-green-500/20 text-green-400 border-green-500/30",
-    Medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-    Hard: "bg-red-500/20 text-red-400 border-red-500/30",
+    Easy: "bg-green-500/15 text-green-400 border-green-500/25",
+    Medium: "bg-yellow-500/15 text-yellow-400 border-yellow-500/25",
+    Hard: "bg-red-500/15 text-red-400 border-red-500/25",
   };
   return (
     <span
-      className={`px-2 py-0.5 rounded text-xs font-medium border ${colors[level] || colors.Easy}`}
+      className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border uppercase tracking-wider ${colors[level] || colors.Easy}`}
     >
       {level}
     </span>
@@ -51,6 +51,75 @@ function getUnlockStatus(
   return status;
 }
 
+function ProgressRing({ total, completed }: { total: number; completed: number }) {
+  const radius = 22;
+  const circumference = 2 * Math.PI * radius;
+  const progress = total > 0 ? completed / total : 0;
+  const dashoffset = circumference - progress * circumference;
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="relative w-14 h-14">
+        <svg className="w-full h-full -rotate-90" viewBox="0 0 52 52">
+          <circle
+            cx="26"
+            cy="26"
+            r={radius}
+            fill="none"
+            stroke="var(--muted)"
+            strokeWidth="4"
+          />
+          <circle
+            cx="26"
+            cy="26"
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={dashoffset}
+            className="text-orange-400 transition-all duration-700 ease-out"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Flame className="w-4 h-4 text-orange-400" />
+        </div>
+      </div>
+      <div>
+        <div className="text-2xl font-bold leading-none tracking-tight">
+          {completed}/{total}
+        </div>
+        <div className="text-xs text-muted-foreground mt-0.5">completed</div>
+      </div>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <main className="max-w-5xl mx-auto px-6 py-10 animate-fade-in">
+      <div className="h-10 w-64 rounded-lg bg-muted animate-shimmer mb-2" />
+      <div className="h-5 w-96 rounded-md bg-muted animate-shimmer mb-10" />
+      <div className="space-y-10">
+        {[1, 2, 3].map((w) => (
+          <div key={w}>
+            <div className="h-6 w-24 rounded-md bg-muted animate-shimmer mb-4" />
+            <div className="grid gap-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-[72px] rounded-xl bg-muted animate-shimmer"
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+}
+
 export default function Home() {
   const [problems, setProblems] = useState<ProblemSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,11 +132,7 @@ export default function Home() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center text-muted-foreground">
-        Loading...
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const byWeek = new Map<number, ProblemSummary[]>();
@@ -77,28 +142,47 @@ export default function Home() {
   }
 
   const status = getUnlockStatus(problems);
+  const completedCount = Array.from(status.values()).filter((s) => s.completed).length;
 
   return (
-    <main className="max-w-5xl mx-auto px-6 py-10">
-      <h1 className="text-3xl font-bold mb-2">PyTorch Mastery</h1>
-      <p className="text-muted-foreground mb-8">
-        LeetCode-style problems to deepen your PyTorch fundamentals.
-      </p>
+    <main className="max-w-5xl mx-auto px-6 py-10 animate-fade-in">
+      {/* Hero */}
+      <div className="flex items-start justify-between mb-10">
+        <div>
+          <h1 className="text-4xl font-bold tracking-tight mb-2">
+            <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-200 bg-clip-text text-transparent">
+              PyTorch Mastery
+            </span>
+          </h1>
+          <p className="text-lg text-muted-foreground font-light">
+            LeetCode-style problems to deepen your PyTorch fundamentals.
+          </p>
+        </div>
+        <ProgressRing total={problems.length} completed={completedCount} />
+      </div>
 
-      <div className="space-y-8">
-        {Array.from(byWeek.entries()).map(([week, items]) => (
-          <section key={week}>
-            <h2 className="text-lg font-semibold mb-3 text-foreground">
+      {/* Weeks */}
+      <div className="space-y-10">
+        {Array.from(byWeek.entries()).map(([week, items], weekIndex) => (
+          <section
+            key={week}
+            className="animate-slide-up"
+            style={{ animationDelay: `${weekIndex * 60}ms`, opacity: 0 }}
+          >
+            <h2 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wider">
               Week {week}
             </h2>
             <div className="grid gap-3">
-              {items.map((p) => {
+              {items.map((p, itemIndex) => {
                 const s = status.get(p.id)!;
+                const delay = weekIndex * 60 + itemIndex * 30;
+
                 if (!s.unlocked) {
                   return (
                     <div
                       key={p.id}
-                      className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/40 opacity-60 cursor-not-allowed"
+                      className="flex items-center justify-between p-4 rounded-xl border border-border/60 bg-muted/30 opacity-50 grayscale cursor-not-allowed transition-all duration-200"
+                      style={{ animationDelay: `${delay}ms` }}
                     >
                       <div className="flex items-center gap-4">
                         <span className="text-sm text-muted-foreground w-12">
@@ -123,14 +207,15 @@ export default function Home() {
                   <a
                     key={p.id}
                     href={`/problem/${p.id}`}
-                    className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors"
+                    className="group flex items-center justify-between p-4 rounded-xl border border-border/60 bg-card hover:bg-accent/40 hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/20 hover:shadow-black/20 transition-all duration-200 ease-out"
+                    style={{ animationDelay: `${delay}ms` }}
                   >
                     <div className="flex items-center gap-4">
                       <span className="text-sm text-muted-foreground w-12">
                         Day {p.day}
                       </span>
                       <div>
-                        <div className="font-medium flex items-center gap-2">
+                        <div className="font-medium flex items-center gap-2 group-hover:text-foreground transition-colors">
                           {p.title}
                           {s.completed && (
                             <CheckCircle2 className="w-4 h-4 text-green-400" />
