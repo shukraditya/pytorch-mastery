@@ -99,7 +99,7 @@ function buildLayout(problems: ProblemSummary[]): {
           to: p.id,
           x1: from.x + NODE_WIDTH,
           y1: from.y + NODE_HEIGHT / 2,
-          x2: to.x,
+          x2: to.x - 10,
           y2: to.y + NODE_HEIGHT / 2,
         });
       }
@@ -291,12 +291,10 @@ export default function SkillTreePage() {
               <g
                 key={p.id}
                 transform={`translate(${n.x}, ${n.y})`}
-                className="cursor-pointer"
+                className={isLocked ? "cursor-not-allowed" : "cursor-pointer"}
                 onMouseEnter={() => setHovered(p.id)}
                 onMouseLeave={() => setHovered(null)}
-                onClick={() => {
-                  if (unlocked || completed) router.push(`/problem/${p.id}`);
-                }}
+                onClick={() => router.push(`/problem/${p.id}`)}
               >
                 <rect
                   width={NODE_WIDTH}
